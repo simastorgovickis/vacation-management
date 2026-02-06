@@ -6,6 +6,7 @@ import { updateUserSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, NotFoundError, ValidationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // PATCH /api/users/[id] - Update user
 export async function PATCH(
@@ -155,6 +156,59 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
     logger.error('Failed to update user', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// DELETE /api/users/[id] - Delete user (Admin only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const admin = await requireRole(['ADMIN'])
+    const { id } = await params
+
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const rateLimit = apiRateLimiter(`${ip}-${admin.id}`)
+    if (!rateLimit.allowed) {
+      throw new RateLimitError('Too many requests', rateLimit.resetAt)
+    }
+
+    if (id === admin.id) {
+      throw new ValidationError('You cannot delete your own account')
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true },
+    })
+
+    if (!user) {
+      throw new NotFoundError('User not found')
+    }
+
+    // Delete Supabase Auth user first (best effort)
+    const supabase = createAdminClient()
+    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id)
+    if (deleteAuthError) {
+      // If the auth user doesn't exist, continue deleting DB user
+      logger.warn('Failed to delete Supabase auth user (continuing)', {
+        userId: user.id,
+        error: deleteAuthError.message,
+      })
+    }
+
+    await prisma.user.delete({ where: { id: user.id } })
+
+    logger.info('User deleted', { adminId: admin.id, userId: user.id, email: user.email })
+    return NextResponse.json({ success: true })
+  } catch (error: unknown) {
+    if (error instanceof AppError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+    logger.error('Failed to delete user', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

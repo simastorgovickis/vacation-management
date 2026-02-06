@@ -21,6 +21,7 @@ export default function EditUserPage() {
   const params = useParams()
   const userId = params.id as string
 
+  const [userEmail, setUserEmail] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     role: '',
@@ -44,6 +45,7 @@ export default function EditUserPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [adjustingBalance, setAdjustingBalance] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     // Fetch user data
@@ -52,6 +54,7 @@ export default function EditUserPage() {
       .then((data) => {
         const user = data.users?.find((u: any) => u.id === userId)
         if (user) {
+          setUserEmail(user.email || '')
           setFormData({
             name: user.name,
             role: user.role,
@@ -105,6 +108,45 @@ export default function EditUserPage() {
         setLoading(false)
       })
   }, [userId])
+
+  const handleDeleteUser = async () => {
+    setError('')
+
+    if (!userEmail) {
+      setError('Cannot delete user: email not loaded yet. Please refresh and try again.')
+      return
+    }
+
+    const ok = confirm(
+      `Delete user ${formData.name} (${userEmail})?\n\nThis will permanently remove the user and their related records.`
+    )
+    if (!ok) return
+
+    const typed = prompt(`Type the user's email to confirm deletion:\n\n${userEmail}`)
+    if (typed !== userEmail) {
+      alert('Deletion cancelled (confirmation did not match).')
+      return
+    }
+
+    setDeleting(true)
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' })
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to delete user')
+        setDeleting(false)
+        return
+      }
+
+      router.push('/admin')
+      router.refresh()
+    } catch (err) {
+      setError('An error occurred. Please try again.')
+      setDeleting(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -386,6 +428,22 @@ export default function EditUserPage() {
               </Button>
             </form>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="mt-6 shadow-sm border-red-200">
+        <CardHeader>
+          <CardTitle className="text-red-700">Danger Zone</CardTitle>
+          <CardDescription>Irreversible actions for this user</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-700">
+            Deleting a user permanently removes them from the system (and attempts to remove them from Supabase Auth).
+          </p>
+          <Button variant="destructive" onClick={handleDeleteUser} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete User'}
+          </Button>
         </CardContent>
       </Card>
     </div>
