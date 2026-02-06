@@ -27,7 +27,7 @@ export default async function ManagerDashboard() {
       status: { in: ['PENDING', 'CANCELLATION_REQUESTED'] },
     },
     include: {
-      user: {
+      User: {
         select: {
           id: true,
           name: true,
@@ -47,7 +47,7 @@ export default async function ManagerDashboard() {
       status: { not: 'CANCELLED' }, // Exclude cancelled requests
     },
     include: {
-      user: {
+      User: {
         select: {
           id: true,
           name: true,

@@ -7,7 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { VacationRequest } from '@prisma/client'
 
 interface TeamVacationCalendarProps {
-  vacations: (VacationRequest & { user?: { name: string; email: string; id?: string } })[]
+  vacations: (VacationRequest & { User?: { name: string; email: string; id?: string } })[]
   teamMemberIds?: string[] // Optional: pass team member IDs to fetch holidays even without vacations
 }
 
@@ -25,7 +25,7 @@ export function TeamVacationCalendar({ vacations, teamMemberIds }: TeamVacationC
   const [holidays, setHolidays] = useState<PublicHoliday[]>([])
 
   // Get unique user IDs from vacations and team members
-  const vacationUserIds = [...new Set(vacations.map(v => v.user?.id).filter(Boolean) as string[])]
+  const vacationUserIds = [...new Set(vacations.map(v => v.User?.id).filter(Boolean) as string[])]
   const userIds = teamMemberIds && teamMemberIds.length > 0 
     ? [...new Set([...vacationUserIds, ...teamMemberIds])]
     : vacationUserIds
@@ -62,7 +62,7 @@ export function TeamVacationCalendar({ vacations, teamMemberIds }: TeamVacationC
 
   const vacationEvents = vacations.map((vacation) => {
     const days = Math.round(vacation.days)
-    const userName = vacation.user?.name || 'Unknown'
+    const userName = vacation.User?.name || 'Unknown'
     const statusText = vacation.status === 'APPROVED' ? '' : vacation.status === 'CANCELLATION_REQUESTED' ? ' (Cancellation Requested)' : ` (${vacation.status})`
     const title = `${userName}: ${days}${statusText}`
     

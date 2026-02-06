@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const vacations = await prisma.vacationRequest.findMany({
       where,
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,

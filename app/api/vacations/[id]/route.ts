@@ -25,7 +25,7 @@ export async function GET(
     const vacation = await prisma.vacationRequest.findUnique({
       where: { id },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -228,7 +228,7 @@ export async function PATCH(
       where: { id },
       data: updateData,
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,

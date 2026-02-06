@@ -14,7 +14,7 @@ import {
 import { format } from 'date-fns'
 
 interface VacationRequestListProps {
-  vacations: (VacationRequest & { user?: { name: string; email: string } })[]
+  vacations: (VacationRequest & { User?: { name: string; email: string } })[]
   showActions?: boolean
   showCancel?: boolean // For employees to cancel their own requests
   onStatusChange?: (id: string, status: string) => void
@@ -86,11 +86,11 @@ export function VacationRequestList({
       <TableBody>
         {vacations.map((vacation) => (
           <TableRow key={vacation.id}>
-            {vacation.user && (
+            {vacation.User && (
               <TableCell>
                 <div>
-                  <div className="font-medium">{vacation.user.name}</div>
-                  <div className="text-sm text-gray-500">{vacation.user.email}</div>
+                  <div className="font-medium">{vacation.User.name}</div>
+                  <div className="text-sm text-gray-500">{vacation.User.email}</div>
                 </div>
               </TableCell>
             )}
