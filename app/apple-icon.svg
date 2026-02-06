@@ -1,0 +1,7 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Red circle background -->
+  <circle cx="90" cy="90" r="85" fill="#eb0854"/>
+  
+  <!-- Simple white "V" for Vacation -->
+  <path d="M50 60 L90 150 L130 60" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

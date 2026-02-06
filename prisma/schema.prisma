@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum VacationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  CANCELLATION_REQUESTED
+}
+
+enum AuditAction {
+  BALANCE_ADJUSTMENT
+  USER_CREATED
+  USER_UPDATED
+  ROLE_CHANGED
+  MANAGER_ASSIGNED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  role          Role      @default(EMPLOYEE)
+  employmentDate DateTime? // Start date for vacation accrual
+  countryId     String?   // Country assignment for public holidays
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Manager-Employee relationships
+  managedEmployees ManagerEmployee[] @relation("Manager")
+  manager          ManagerEmployee[] @relation("Employee")
+
+  // Vacation data
+  vacationRequests VacationRequest[]
+  vacationBalances VacationBalance[]
+  accrualLogs      VacationAccrualLog[]
+
+  // Country assignment
+  country Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  // Password reset tokens
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([email])
+  @@index([role])
+  @@index([countryId])
+}
+
+model ManagerEmployee {
+  id         String   @id @default(uuid())
+  managerId  String
+  employeeId String
+  createdAt  DateTime @default(now())
+
+  manager  User @relation("Manager", fields: [managerId], references: [id], onDelete: Cascade)
+  employee User @relation("Employee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, employeeId])
+  @@index([managerId])
+  @@index([employeeId])
+}
+
+model VacationRequest {
+  id          String         @id @default(uuid())
+  userId      String
+  startDate   DateTime
+  endDate     DateTime
+  days        Float          // Calculated days (can be fractional)
+  status      VacationStatus @default(PENDING)
+  comment     String?        // Employee's comment
+  rejectionReason String?     // Manager's rejection reason
+  approvedById   String?      // Manager who approved/rejected
+  approvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model VacationBalance {
+  id          String   @id @default(uuid())
+  userId      String
+  year        Int      // Year this balance applies to
+  accrued     Float    @default(0) // Days accrued
+  used        Float    @default(0) // Days used
+  adjusted    Float    @default(0) // Manual adjustments
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+  @@index([userId])
+  @@index([year])
+}
+
+model VacationAccrualLog {
+  id          String   @id @default(uuid())
+  userId      String
+  year        Int
+  month       Int      // 1-12
+  daysAccrued Float
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month])
+  @@index([userId])
+  @@index([year, month])
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  userId      String?     // User who performed the action
+  targetUserId String?    // User affected by the action
+  action      AuditAction
+  details     Json        // Flexible JSON for action-specific data
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Country {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique // ISO country code (e.g., "US", "FR")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  publicHolidays  PublicHoliday[]
+
+  @@index([code])
+}
+
+model PublicHoliday {
+  id          String   @id @default(uuid())
+  countryId   String
+  name        String
+  date        DateTime // Date of the holiday (year is stored but may repeat annually)
+  isRecurring Boolean  @default(true) // If true, holiday repeats every year
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@index([countryId])
+  @@index([date])
+  @@unique([countryId, name, date])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
