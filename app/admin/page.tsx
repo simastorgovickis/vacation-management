@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
   const teamRelations = await prisma.managerEmployee.findMany({
     where: { managerId: admin.id },
     include: {
-      employee: {
+      User_ManagerEmployee_employeeIdToUser: {
         select: {
           id: true,
           name: true,
@@ -128,7 +128,7 @@ export default async function AdminDashboard() {
                 <div className="space-y-1">
                   {teamRelations.map((rel) => (
                     <div key={rel.id} className="text-sm">
-                      • {rel.employee.name} ({rel.employee.email})
+                      • {rel.User_ManagerEmployee_employeeIdToUser.name} ({rel.User_ManagerEmployee_employeeIdToUser.email})
                     </div>
                   ))}
                 </div>

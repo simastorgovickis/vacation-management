@@ -12,7 +12,7 @@ export default async function ManagerDashboard() {
   const teamRelations = await prisma.managerEmployee.findMany({
     where: { managerId: manager.id },
     include: {
-      employee: true,
+      User_ManagerEmployee_employeeIdToUser: true,
     },
   })
 
@@ -65,7 +65,7 @@ export default async function ManagerDashboard() {
     teamRelations.map(async (rel) => {
       const available = await getAvailableVacationDays(rel.employeeId)
       return {
-        employee: rel.employee,
+        employee: rel.User_ManagerEmployee_employeeIdToUser,
         available,
       }
     })
