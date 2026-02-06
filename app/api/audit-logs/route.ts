@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { AppError } from '@/lib/errors'
+import { logger } from '@/lib/logger'
 
 // GET /api/audit-logs - Get audit logs (Admin only)
 export async function GET(request: NextRequest) {
@@ -16,10 +18,6 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        // Note: We'd need to add relations if we want user names
-        // For now, just return the logs
-      },
     })
 
     const total = await prisma.auditLog.count()
@@ -30,10 +28,14 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
     })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: error.message === 'Forbidden' ? 403 : 500 }
-    )
+  } catch (error: unknown) {
+    if (error instanceof AppError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+    if (error instanceof Error && error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    logger.error('Failed to fetch audit logs', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
