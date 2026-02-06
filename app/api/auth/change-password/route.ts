@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { changePasswordSchema } from '@/lib/validation'
-import { passwordResetRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError, ValidationError, AuthenticationError } from '@/lib/errors'
+import { passwordResetRateLimiter } from '@/lib/rate-limit'
+import { AppError, ValidationError, AuthenticationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // POST /api/auth/change-password - Change user password

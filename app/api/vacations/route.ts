@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { calculateVacationDays } from '@/lib/vacation'
 import { VacationStatus, Prisma } from '@prisma/client'
 import { createVacationSchema } from '@/lib/validation'
-import { apiRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError, AuthenticationError, ValidationError } from '@/lib/errors'
+import { apiRateLimiter } from '@/lib/rate-limit'
+import { AppError, AuthenticationError, ValidationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // GET /api/vacations - List vacations

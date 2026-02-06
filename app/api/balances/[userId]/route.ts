@@ -3,8 +3,8 @@ import { requireAuth, requireRole, canAccessEmployeeData } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getAvailableVacationDays } from '@/lib/vacation'
 import { adjustBalanceSchema } from '@/lib/validation'
-import { apiRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError, AuthorizationError } from '@/lib/errors'
+import { apiRateLimiter } from '@/lib/rate-limit'
+import { AppError, AuthorizationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // GET /api/balances/[userId] - Get vacation balance

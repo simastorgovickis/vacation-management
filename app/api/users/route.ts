@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Role, Prisma } from '@prisma/client'
 import { createUserSchema } from '@/lib/validation'
-import { apiRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError } from '@/lib/errors'
+import { apiRateLimiter } from '@/lib/rate-limit'
+import { AppError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // GET /api/users - List users

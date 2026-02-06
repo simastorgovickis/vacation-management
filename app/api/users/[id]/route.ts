@@ -3,8 +3,8 @@ import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Role, Prisma } from '@prisma/client'
 import { updateUserSchema } from '@/lib/validation'
-import { apiRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError, NotFoundError, ValidationError } from '@/lib/errors'
+import { apiRateLimiter } from '@/lib/rate-limit'
+import { AppError, NotFoundError, ValidationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // PATCH /api/users/[id] - Update user

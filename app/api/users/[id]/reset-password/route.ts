@@ -3,8 +3,8 @@ import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createAdminClient } from '@/lib/supabase/admin'
 import crypto from 'crypto'
-import { apiRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError, NotFoundError } from '@/lib/errors'
+import { apiRateLimiter } from '@/lib/rate-limit'
+import { AppError, NotFoundError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // POST /api/users/[id]/reset-password - Generate and set a new password

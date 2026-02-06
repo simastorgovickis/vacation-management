@@ -3,8 +3,8 @@ import { requireAuth, requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Role, VacationStatus, Prisma } from '@prisma/client'
 import { updateVacationSchema } from '@/lib/validation'
-import { apiRateLimiter, RateLimitError } from '@/lib/rate-limit'
-import { AppError, NotFoundError, AuthorizationError, ValidationError } from '@/lib/errors'
+import { apiRateLimiter } from '@/lib/rate-limit'
+import { AppError, NotFoundError, AuthorizationError, ValidationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 
 // GET /api/vacations/[id] - Get single vacation
