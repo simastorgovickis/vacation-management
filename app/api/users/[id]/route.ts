@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { Role, Prisma } from '@prisma/client'
+import { Role, Prisma } from '@/lib/generated/prisma/client'
 import { updateUserSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, NotFoundError, ValidationError, RateLimitError } from '@/lib/errors'
@@ -37,7 +37,7 @@ export async function PATCH(
     const validationResult = updateUserSchema.partial().safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: validationResult.error.errors[0]?.message || 'Invalid input' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }
@@ -48,7 +48,11 @@ export async function PATCH(
     if (name !== undefined) updateData.name = name
     if (role !== undefined) updateData.role = role
     if (employmentDate !== undefined) updateData.employmentDate = employmentDate
-    if (countryId !== undefined) updateData.countryId = countryId || null
+    if (countryId !== undefined) {
+      updateData.Country = countryId
+        ? { connect: { id: countryId } }
+        : { disconnect: true }
+    }
 
     // Use transaction for atomic updates
     const updated = await prisma.$transaction(async (tx) => {

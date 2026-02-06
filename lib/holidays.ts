@@ -1,26 +1,30 @@
 import { prisma } from './prisma'
+import type { PublicHolidayModel } from '@/lib/generated/prisma/models'
 
 /**
  * Get public holidays for a user's country for a given year
  */
-export async function getPublicHolidaysForUser(userId: string, year: number) {
+export async function getPublicHolidaysForUser(
+  userId: string,
+  year: number
+): Promise<PublicHolidayModel[]> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      country: {
+      Country: {
         include: {
-          publicHolidays: true,
+          PublicHoliday: true,
         },
       },
     },
   })
 
-  if (!user || !user.country) {
+  if (!user || !user.Country) {
     return []
   }
 
   // Process holidays: recurring ones get adjusted to the target year
-  const holidays = user.country.publicHolidays.map((holiday) => {
+  const holidays: PublicHolidayModel[] = user.Country.PublicHoliday.map((holiday: PublicHolidayModel) => {
     const holidayDate = new Date(holiday.date)
     
     if (holiday.isRecurring) {
@@ -33,7 +37,7 @@ export async function getPublicHolidaysForUser(userId: string, year: number) {
     
     // For non-recurring holidays, return as-is (they should already be in the correct year)
     return holiday
-  })
+  }) as PublicHolidayModel[]
 
   // Filter to only include holidays within the target year
   const yearStart = new Date(year, 0, 1)

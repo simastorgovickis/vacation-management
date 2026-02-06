@@ -1,6 +1,6 @@
 'use client'
 
-import { VacationRequest } from '@prisma/client'
+import type { VacationRequest } from '@/lib/generated/prisma/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -74,7 +74,7 @@ export function VacationRequestList({
     <Table>
       <TableHeader>
         <TableRow>
-          {vacations[0]?.user && <TableHead>Employee</TableHead>}
+          {vacations[0]?.User && <TableHead>Employee</TableHead>}
           <TableHead>Start Date</TableHead>
           <TableHead>End Date</TableHead>
           <TableHead>Days</TableHead>

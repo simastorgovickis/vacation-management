@@ -17,8 +17,8 @@ export const nameSchema = z
   .max(200, 'Name is too long')
   .trim()
 
-export const roleSchema = z.enum(['ADMIN', 'MANAGER', 'EMPLOYEE'], {
-  errorMap: () => ({ message: 'Invalid role' }),
+export const roleSchema = z.enum(['ADMIN', 'MANAGER', 'EMPLOYEE'] as const, {
+  message: 'Invalid role',
 })
 
 export const dateSchema = z.coerce.date().refine(

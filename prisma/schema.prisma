@@ -8,7 +8,7 @@ datasource db {
 }
 
 model AuditLog {
-  id           String      @id
+  id           String      @id @default(cuid())
   userId       String?
   targetUserId String?
   action       AuditAction
@@ -22,11 +22,11 @@ model AuditLog {
 }
 
 model Country {
-  id            String          @id
+  id            String          @id @default(cuid())
   name          String          @unique
   code          String          @unique
   createdAt     DateTime        @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime        @updatedAt
   PublicHoliday PublicHoliday[]
   User          User[]
 
@@ -34,7 +34,7 @@ model Country {
 }
 
 model ManagerEmployee {
-  id                                    String   @id
+  id                                    String   @id @default(cuid())
   managerId                             String
   employeeId                            String
   createdAt                             DateTime @default(now())
@@ -47,7 +47,7 @@ model ManagerEmployee {
 }
 
 model PasswordResetToken {
-  id        String   @id
+  id        String   @id @default(cuid())
   userId    String
   token     String   @unique
   expiresAt DateTime
@@ -61,13 +61,13 @@ model PasswordResetToken {
 }
 
 model PublicHoliday {
-  id          String   @id
+  id          String   @id @default(cuid())
   countryId   String
   name        String
   date        DateTime
   isRecurring Boolean  @default(true)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
   Country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
 
   @@unique([countryId, name, date])
@@ -76,13 +76,13 @@ model PublicHoliday {
 }
 
 model User {
-  id                                               String               @id
+  id                                               String               @id @default(cuid())
   email                                            String               @unique
   name                                             String
   role                                             Role                 @default(EMPLOYEE)
   employmentDate                                   DateTime?
   createdAt                                        DateTime             @default(now())
-  updatedAt                                        DateTime
+  updatedAt                                        DateTime             @updatedAt
   countryId                                        String?
   ManagerEmployee_ManagerEmployee_employeeIdToUser ManagerEmployee[]    @relation("ManagerEmployee_employeeIdToUser")
   ManagerEmployee_ManagerEmployee_managerIdToUser  ManagerEmployee[]    @relation("ManagerEmployee_managerIdToUser")
@@ -98,7 +98,7 @@ model User {
 }
 
 model VacationAccrualLog {
-  id          String   @id
+  id          String   @id @default(cuid())
   userId      String
   year        Int
   month       Int
@@ -112,14 +112,14 @@ model VacationAccrualLog {
 }
 
 model VacationBalance {
-  id        String   @id
+  id        String   @id @default(cuid())
   userId    String
   year      Int
   accrued   Float    @default(0)
   used      Float    @default(0)
   adjusted  Float    @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, year])
@@ -128,7 +128,7 @@ model VacationBalance {
 }
 
 model VacationRequest {
-  id              String         @id
+  id              String         @id @default(cuid())
   userId          String
   startDate       DateTime
   endDate         DateTime
@@ -139,7 +139,7 @@ model VacationRequest {
   approvedById    String?
   approvedAt      DateTime?
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime       @updatedAt
   User            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([startDate, endDate])

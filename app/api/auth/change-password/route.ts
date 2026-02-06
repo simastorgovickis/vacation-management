@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validationResult = changePasswordSchema.safeParse(body)
     if (!validationResult.success) {
-      throw new ValidationError(validationResult.error.errors[0]?.message || 'Invalid input')
+      throw new ValidationError(validationResult.error.issues[0]?.message || 'Invalid input')
     }
 
     const { currentPassword, newPassword } = validationResult.data

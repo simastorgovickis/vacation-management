@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const validationResult = resetPasswordSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: validationResult.error.errors[0]?.message || 'Invalid input' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
       include: {
-        user: true,
+        User: true,
       },
     })
 

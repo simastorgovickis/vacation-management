@@ -17,15 +17,15 @@ export default async function ProfilePage() {
   const userDetails = await prisma.user.findUnique({
     where: { id: user.id },
     include: {
-      country: {
+      Country: {
         select: {
           name: true,
           code: true,
         },
       },
-      manager: {
+      ManagerEmployee_ManagerEmployee_employeeIdToUser: {
         include: {
-          manager: {
+          User_ManagerEmployee_managerIdToUser: {
             select: {
               id: true,
               name: true,
@@ -42,15 +42,25 @@ export default async function ProfilePage() {
   }
 
   const availableDays = await getAvailableVacationDays(user.id)
+  const profileUser = {
+    id: userDetails.id,
+    name: userDetails.name,
+    email: userDetails.email,
+    role: userDetails.role,
+    employmentDate: userDetails.employmentDate,
+    country: userDetails.Country
+      ? { name: userDetails.Country.name, code: userDetails.Country.code }
+      : null,
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar user={user} />
       <main className="container mx-auto px-4 py-8 flex-1">
         <ProfileView
-          user={userDetails}
+          user={profileUser}
           availableDays={availableDays}
-          manager={userDetails.manager?.[0]?.manager}
+          manager={userDetails.ManagerEmployee_ManagerEmployee_employeeIdToUser?.[0]?.User_ManagerEmployee_managerIdToUser}
         />
       </main>
       <Footer />

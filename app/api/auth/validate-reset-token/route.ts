@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             email: true,
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       userId: resetToken.userId,
-      email: resetToken.user.email,
+      email: resetToken.User.email,
     })
   } catch (error: any) {
     return NextResponse.json(

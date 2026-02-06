@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, canAccessEmployeeData } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateVacationDays } from '@/lib/vacation'
-import { VacationStatus, Prisma } from '@prisma/client'
+import { VacationStatus, Prisma } from '@/lib/generated/prisma/client'
 import { createVacationSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, AuthenticationError, ValidationError, RateLimitError } from '@/lib/errors'
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     const validationResult = createVacationSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: validationResult.error.errors[0]?.message || 'Invalid input' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }

@@ -10,8 +10,8 @@ export async function GET() {
       include: {
         _count: {
           select: {
-            users: true,
-            publicHolidays: true,
+            User: true,
+            PublicHoliday: true,
           },
         },
       },

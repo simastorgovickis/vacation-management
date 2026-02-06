@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { Role, VacationStatus, Prisma } from '@prisma/client'
+import { Role, VacationStatus, Prisma } from '@/lib/generated/prisma/client'
 import { updateVacationSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, NotFoundError, AuthorizationError, ValidationError, RateLimitError } from '@/lib/errors'
@@ -91,7 +91,7 @@ export async function PATCH(
     const validationResult = updateVacationSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: validationResult.error.errors[0]?.message || 'Invalid input' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }

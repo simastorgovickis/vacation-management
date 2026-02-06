@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -186,5 +186,30 @@ export default function ResetPasswordPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col bg-gray-50">
+          <div className="flex-1 flex items-center justify-center px-4">
+            <Card className="w-full max-w-md shadow-lg">
+              <CardContent className="p-8">
+                <p className="text-center">Loading...</p>
+              </CardContent>
+            </Card>
+          </div>
+          <footer className="border-t bg-white py-4">
+            <div className="container mx-auto px-4">
+              <p className="text-center text-sm text-gray-600">© Rail Europe {new Date().getFullYear()}</p>
+            </div>
+          </footer>
+        </div>
+      }
+    >
+      <ResetPasswordPageInner />
+    </Suspense>
   )
 }

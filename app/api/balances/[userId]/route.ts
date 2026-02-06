@@ -91,7 +91,7 @@ export async function PATCH(
     const validationResult = adjustBalanceSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: validationResult.error.errors[0]?.message || 'Invalid input' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }

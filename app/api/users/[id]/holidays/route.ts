@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, canAccessEmployeeData } from '@/lib/auth'
 import { getPublicHolidaysForUser } from '@/lib/holidays'
 import { prisma } from '@/lib/prisma'
+import type { PublicHolidayModel } from '@/lib/generated/prisma/models'
 
 // GET /api/users/[id]/holidays - Get public holidays for a user
 export async function GET(
@@ -24,7 +25,7 @@ export async function GET(
     const userWithCountry = await prisma.user.findUnique({
       where: { id },
       include: {
-        country: {
+        Country: {
           select: {
             id: true,
             name: true,
@@ -35,7 +36,7 @@ export async function GET(
     })
 
     // Format holidays for the calendar
-    const formattedHolidays = holidays.map((holiday) => {
+    const formattedHolidays = holidays.map((holiday: PublicHolidayModel) => {
       // Use local date to avoid timezone issues
       const holidayDate = new Date(holiday.date)
       const year = holidayDate.getFullYear()
@@ -49,9 +50,9 @@ export async function GET(
         id: holiday.id,
         name: holiday.name,
         date: localDateString,
-        country: userWithCountry?.country ? {
-          name: userWithCountry.country.name,
-          code: userWithCountry.country.code,
+        country: userWithCountry?.Country ? {
+          name: userWithCountry.Country.name,
+          code: userWithCountry.Country.code,
         } : null,
       }
     })

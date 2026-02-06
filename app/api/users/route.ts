@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Role, Prisma } from '@prisma/client'
+import { Role, Prisma } from '@/lib/generated/prisma/client'
 import { createUserSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, RateLimitError } from '@/lib/errors'
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: {
-            managedEmployees: true,
+            ManagerEmployee_ManagerEmployee_managerIdToUser: true,
           },
         },
       },
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const validationResult = createUserSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: validationResult.error.errors[0]?.message || 'Invalid input' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }
@@ -119,11 +119,12 @@ export async function POST(request: NextRequest) {
       // Set initial balance if provided
       if (initialBalance !== undefined && initialBalance !== null) {
         const currentYear = new Date().getFullYear()
+        const initialBalanceAmount = Number(initialBalance)
         await tx.vacationBalance.create({
           data: {
             userId: user.id,
             year: currentYear,
-            adjusted: parseFloat(initialBalance),
+            adjusted: initialBalanceAmount,
             accrued: 0,
             used: 0,
           },
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
             action: 'BALANCE_ADJUSTMENT',
             details: {
               reason: 'Initial balance',
-              amount: parseFloat(initialBalance),
+              amount: initialBalanceAmount,
             },
           },
         })

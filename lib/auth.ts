@@ -1,6 +1,6 @@
 import { createClient } from './supabase/server'
 import { prisma } from './prisma'
-import { Role } from '@prisma/client'
+import type { Role } from '@/lib/generated/prisma/enums'
 
 export async function getCurrentUser() {
   const supabase = await createClient()
@@ -15,13 +15,6 @@ export async function getCurrentUser() {
   // Get user from our database
   const user = await prisma.user.findUnique({
     where: { email: supabaseUser.email! },
-    include: {
-      managedEmployees: {
-        include: {
-          employee: true,
-        },
-      },
-    },
   })
 
   return user

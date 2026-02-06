@@ -14,7 +14,7 @@ export async function GET(
     const relationship = await prisma.managerEmployee.findFirst({
       where: { employeeId: id },
       include: {
-        manager: {
+        User_ManagerEmployee_managerIdToUser: {
           select: {
             id: true,
             name: true,
@@ -26,7 +26,7 @@ export async function GET(
 
     return NextResponse.json({
       managerId: relationship?.managerId || null,
-      manager: relationship?.manager || null,
+      manager: relationship?.User_ManagerEmployee_managerIdToUser || null,
     })
   } catch (error: any) {
     return NextResponse.json(

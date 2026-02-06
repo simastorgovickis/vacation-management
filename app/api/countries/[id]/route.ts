@@ -12,14 +12,14 @@ export async function GET(
     const country = await prisma.country.findUnique({
       where: { id },
       include: {
-        publicHolidays: {
+        PublicHoliday: {
           orderBy: {
             date: 'asc',
           },
         },
         _count: {
           select: {
-            users: true,
+            User: true,
           },
         },
       },
