@@ -52,7 +52,7 @@ export default function ManageHolidaysPage() {
       .then((res) => res.json())
       .then((data) => {
         setCountry(data.country)
-        setHolidays(data.country?.publicHolidays || [])
+        setHolidays(data.country?.PublicHoliday || [])
         setLoading(false)
       })
       .catch(() => {
@@ -89,7 +89,7 @@ export default function ManageHolidaysPage() {
       fetch(`/api/countries/${countryId}`)
         .then((res) => res.json())
         .then((data) => {
-          setHolidays(data.country?.publicHolidays || [])
+          setHolidays(data.country?.PublicHoliday || [])
         })
 
       setFormData({ name: '', date: '', isRecurring: true })
@@ -133,7 +133,7 @@ export default function ManageHolidaysPage() {
         fetch(`/api/countries/${countryId}`)
           .then((res) => res.json())
           .then((data) => {
-            setHolidays(data.country?.publicHolidays || [])
+            setHolidays(data.country?.PublicHoliday || [])
           })
       } else {
         alert('Failed to update holiday')
@@ -193,7 +193,7 @@ export default function ManageHolidaysPage() {
       fetch(`/api/countries/${countryId}`)
         .then((res) => res.json())
         .then((data) => {
-          setHolidays(data.country?.publicHolidays || [])
+          setHolidays(data.country?.PublicHoliday || [])
         })
 
       setImporting(false)

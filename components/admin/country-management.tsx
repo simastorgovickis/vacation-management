@@ -18,8 +18,8 @@ interface Country {
   name: string
   code: string
   _count: {
-    users: number
-    publicHolidays: number
+    User: number
+    PublicHoliday: number
   }
 }
 
@@ -79,8 +79,8 @@ export function CountryManagement() {
               <TableRow key={country.id}>
                 <TableCell className="font-medium">{country.name}</TableCell>
                 <TableCell>{country.code}</TableCell>
-                <TableCell>{country._count.users}</TableCell>
-                <TableCell>{country._count.publicHolidays}</TableCell>
+                <TableCell>{country._count.User}</TableCell>
+                <TableCell>{country._count.PublicHoliday}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>

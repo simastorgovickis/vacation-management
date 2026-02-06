@@ -62,8 +62,9 @@ export const updateUserSchema = z.object({
   name: nameSchema.optional(),
   role: roleSchema.optional(),
   employmentDate: employmentDateSchema.optional().nullable(),
-  managerId: z.string().uuid().optional().nullable(),
-  countryId: z.string().uuid().optional().nullable(),
+  // IDs are Prisma string IDs (cuid), not strict UUIDs
+  managerId: z.string().min(1).optional().nullable(),
+  countryId: z.string().min(1).optional().nullable(),
 })
 
 export const createVacationSchema = z.object({

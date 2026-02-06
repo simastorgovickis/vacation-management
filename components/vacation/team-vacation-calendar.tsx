@@ -91,17 +91,14 @@ export function TeamVacationCalendar({ vacations, teamMemberIds }: TeamVacationC
   })
 
   const holidayEvents = holidays.map((holiday) => {
-    // Parse date string (YYYY-MM-DD) and create date in local timezone to avoid offset issues
-    const [year, month, day] = holiday.date.split('-').map(Number)
-    const holidayDate = new Date(year, month - 1, day) // month is 0-indexed
-    
     // Show only country code in the calendar box, full name will be in tooltip
     const displayText = holiday.country ? holiday.country.code : 'H'
     
     return {
       id: `holiday-${holiday.id}`,
       title: holiday.name + (holiday.country ? ` (${holiday.country.code})` : ''), // Full text for tooltip
-      start: holidayDate,
+      // Use plain YYYY-MM-DD string so FullCalendar treats it as all-day without timezone shifts
+      start: holiday.date,
       allDay: true,
       color: '#9333ea', // Purple/violet color for public holidays (distinct from vacation colors)
       backgroundColor: '#9333ea',
