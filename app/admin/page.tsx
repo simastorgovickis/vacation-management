@@ -44,7 +44,7 @@ export default async function AdminDashboard() {
           status: 'PENDING',
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               name: true,
@@ -139,7 +139,7 @@ export default async function AdminDashboard() {
                   <div className="space-y-1 text-sm text-gray-600">
                     {teamPendingRequests.map((req) => (
                       <div key={req.id}>
-                        • {req.user.name}: {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}
+                        • {req.User.name}: {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}
                       </div>
                     ))}
                     {teamPendingRequests.length === 5 && (
