@@ -23,6 +23,7 @@ export default function CreateUserPage() {
     name: '',
     role: 'EMPLOYEE',
     employmentDate: new Date().toISOString().split('T')[0],
+    yearlyAllowance: '30',
     initialBalance: '',
   })
   const [error, setError] = useState('')
@@ -43,6 +44,7 @@ export default function CreateUserPage() {
           name: formData.name,
           role: formData.role,
           employmentDate: formData.employmentDate,
+          yearlyAllowance: formData.yearlyAllowance !== '' ? parseFloat(formData.yearlyAllowance) : null,
           initialBalance: formData.initialBalance || null,
         }),
       })
@@ -142,6 +144,23 @@ export default function CreateUserPage() {
               />
               <p className="text-sm text-gray-500">
                 Vacation accrual will start from this date
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="yearlyAllowance">Yearly vacation allowance (days)</Label>
+              <Input
+                id="yearlyAllowance"
+                type="number"
+                min={0}
+                max={365}
+                step={0.5}
+                placeholder="30"
+                value={formData.yearlyAllowance}
+                onChange={(e) => setFormData({ ...formData, yearlyAllowance: e.target.value })}
+              />
+              <p className="text-sm text-gray-500">
+                Days per year used for daily accrual (default 30)
               </p>
             </div>
 

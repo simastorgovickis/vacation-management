@@ -55,6 +55,7 @@ export const createUserSchema = z.object({
   name: nameSchema,
   role: roleSchema,
   employmentDate: employmentDateSchema.optional().nullable(),
+  yearlyAllowance: z.coerce.number().min(0).max(365).optional().nullable(),
   initialBalance: z.coerce.number().optional().nullable(),
 })
 
@@ -62,6 +63,7 @@ export const updateUserSchema = z.object({
   name: nameSchema.optional(),
   role: roleSchema.optional(),
   employmentDate: employmentDateSchema.optional().nullable(),
+  yearlyAllowance: z.coerce.number().min(0).max(365).optional().nullable(),
   // IDs are Prisma string IDs (cuid), not strict UUIDs
   managerId: z.string().min(1).optional().nullable(),
   countryId: z.string().min(1).optional().nullable(),

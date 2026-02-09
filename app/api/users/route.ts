@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { email, password, name, role, employmentDate, initialBalance } = validationResult.data
+    const { email, password, name, role, employmentDate, yearlyAllowance, initialBalance } = validationResult.data
 
     // Use transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
           name,
           role: role as Role,
           employmentDate: employmentDate || new Date(),
+          yearlyAllowance: yearlyAllowance ?? 30,
         },
       })
 

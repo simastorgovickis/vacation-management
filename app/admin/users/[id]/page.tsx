@@ -26,6 +26,7 @@ export default function EditUserPage() {
     name: '',
     role: '',
     employmentDate: '',
+    yearlyAllowance: '',
     managerId: '',
     countryId: '',
   })
@@ -61,6 +62,7 @@ export default function EditUserPage() {
             employmentDate: user.employmentDate
               ? new Date(user.employmentDate).toISOString().split('T')[0]
               : '',
+            yearlyAllowance: user.yearlyAllowance != null ? String(user.yearlyAllowance) : '30',
             managerId: '',
             countryId: user.countryId || '',
           })
@@ -161,6 +163,7 @@ export default function EditUserPage() {
           name: formData.name,
           role: formData.role,
           employmentDate: formData.employmentDate,
+          yearlyAllowance: formData.yearlyAllowance !== '' ? parseFloat(formData.yearlyAllowance) : null,
           managerId: formData.managerId && formData.managerId !== 'none' ? formData.managerId : null,
           countryId: formData.countryId && formData.countryId !== 'none' ? formData.countryId : null,
         }),
@@ -299,6 +302,25 @@ export default function EditUserPage() {
                 required
               />
               <p className="text-sm text-gray-500">Vacation accrual start date</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="yearlyAllowance">Yearly vacation allowance (days)</Label>
+              <Input
+                id="yearlyAllowance"
+                type="number"
+                min={0}
+                max={365}
+                step={0.5}
+                placeholder="30"
+                value={formData.yearlyAllowance}
+                onChange={(e) =>
+                  setFormData({ ...formData, yearlyAllowance: e.target.value })
+                }
+              />
+              <p className="text-sm text-gray-500">
+                Days per year used for daily accrual (default 30). Admins can override per employee.
+              </p>
             </div>
 
             <div className="space-y-2">

@@ -43,12 +43,13 @@ export async function PATCH(
       )
     }
 
-    const { name, role, employmentDate, managerId, countryId } = validationResult.data
+    const { name, role, employmentDate, yearlyAllowance, managerId, countryId } = validationResult.data
 
     const updateData: Prisma.UserUpdateInput = {}
     if (name !== undefined) updateData.name = name
     if (role !== undefined) updateData.role = role
     if (employmentDate !== undefined) updateData.employmentDate = employmentDate
+    if (yearlyAllowance !== undefined) updateData.yearlyAllowance = yearlyAllowance
     if (countryId !== undefined) {
       updateData.Country = countryId
         ? { connect: { id: countryId } }

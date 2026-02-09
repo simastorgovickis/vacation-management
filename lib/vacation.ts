@@ -95,7 +95,8 @@ export async function calculateAccruedDays(
     return 0
   }
 
-  const dailyRate = DEFAULT_YEARLY_ALLOWANCE / daysInYear
+  const allowance = user.yearlyAllowance ?? DEFAULT_YEARLY_ALLOWANCE
+  const dailyRate = allowance / daysInYear
   return employedDaysThisYear * dailyRate
 }
 

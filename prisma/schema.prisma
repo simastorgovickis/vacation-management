@@ -85,6 +85,7 @@ model User {
   name                                             String
   role                                             Role                 @default(EMPLOYEE)
   employmentDate                                   DateTime?
+  yearlyAllowance                                  Float?               @default(30)
   createdAt                                        DateTime             @default(now())
   updatedAt                                        DateTime             @updatedAt
   countryId                                        String?
