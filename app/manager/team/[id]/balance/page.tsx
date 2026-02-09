@@ -89,11 +89,18 @@ export default function ManagerEmployeeBalancePage() {
     setSaving(true)
 
     try {
+      const normalizedAmount = parseFloat(adjustment.amount.replace(',', '.'))
+      if (Number.isNaN(normalizedAmount)) {
+        setError('Please enter a valid number for adjustment amount (e.g., 1.5 or -2)')
+        setSaving(false)
+        return
+      }
+
       const response = await fetch(`/api/balances/${employeeId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: parseFloat(adjustment.amount),
+          amount: normalizedAmount,
           reason: adjustment.reason,
         }),
       })

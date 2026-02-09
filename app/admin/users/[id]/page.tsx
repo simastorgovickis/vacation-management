@@ -188,11 +188,18 @@ export default function EditUserPage() {
     setAdjustingBalance(true)
 
     try {
+      const normalizedAmount = parseFloat(balanceAdjustment.amount.replace(',', '.'))
+      if (Number.isNaN(normalizedAmount)) {
+        setError('Please enter a valid number for adjustment amount (e.g., 1.5 or -2)')
+        setAdjustingBalance(false)
+        return
+      }
+
       const response = await fetch(`/api/balances/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: parseFloat(balanceAdjustment.amount),
+          amount: normalizedAmount,
           reason: balanceAdjustment.reason,
         }),
       })
