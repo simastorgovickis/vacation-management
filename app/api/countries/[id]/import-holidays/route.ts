@@ -82,7 +82,19 @@ export async function POST(
     // 3) Calendarific (optional) – supports India and 230+ countries; requires free API key
     if (apiHolidays.length === 0 && process.env.CALENDARIFIC_API_KEY) {
       try {
-        const calUrl = `https://calendarific.com/api/v2/holidays?api_key=${process.env.CALENDARIFIC_API_KEY}&country=${country.code}&year=${targetYear}`
+        // Limit to national/public holidays only to avoid importing dozens of local observances.
+        // If a regionCode is configured on the Country (e.g. IN-MH), use it as Calendarific `location`
+        // to fetch holidays for that specific state/region.
+        const baseUrl = new URL('https://calendarific.com/api/v2/holidays')
+        baseUrl.searchParams.set('api_key', process.env.CALENDARIFIC_API_KEY)
+        baseUrl.searchParams.set('country', country.code)
+        baseUrl.searchParams.set('year', String(targetYear))
+        baseUrl.searchParams.set('type', 'national')
+        if (country.regionCode) {
+          baseUrl.searchParams.set('location', country.regionCode.toLowerCase())
+        }
+
+        const calUrl = baseUrl.toString()
         const response = await fetch(calUrl, { headers: { 'Accept': 'application/json' } })
         if (response.ok) {
           const data = await response.json()

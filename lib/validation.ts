@@ -131,6 +131,13 @@ export const resetPasswordSchema = z.object({
 export const createCountrySchema = z.object({
   name: z.string().min(1, 'Country name is required').max(100, 'Country name is too long').trim(),
   code: z.string().length(2, 'Country code must be 2 characters').toUpperCase(),
+  regionCode: z
+    .string()
+    .min(3, 'Region code is too short')
+    .max(20, 'Region code is too long')
+    .regex(/^[A-Za-z0-9-]+$/, 'Region code can only contain letters, numbers and dashes')
+    .optional()
+    .nullable(),
 })
 
 export const createHolidaySchema = z.object({

@@ -33,19 +33,23 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     await requireRole(['ADMIN'])
-    const { name, code } = await request.json()
+    const body = await request.json()
+    const parsed = createCountrySchema.safeParse(body)
 
-    if (!name || !code) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Name and code are required' },
+        { error: parsed.error.issues[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }
+
+    const { name, code, regionCode } = parsed.data
 
     const country = await prisma.country.create({
       data: {
         name,
         code: code.toUpperCase(),
+        regionCode: regionCode || null,
       },
     })
 

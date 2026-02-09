@@ -27,12 +27,14 @@ model Country {
   id            String          @id @default(cuid())
   name          String          @unique
   code          String          @unique
+  regionCode    String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   PublicHoliday PublicHoliday[]
   User          User[]
 
   @@index([code])
+  @@index([regionCode])
 }
 
 model ManagerEmployee {

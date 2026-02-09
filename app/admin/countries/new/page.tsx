@@ -13,6 +13,7 @@ export default function CreateCountryPage() {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    regionCode: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,6 +30,7 @@ export default function CreateCountryPage() {
         body: JSON.stringify({
           name: formData.name,
           code: formData.code.toUpperCase(),
+          regionCode: formData.regionCode.trim() || undefined,
         }),
       })
 
@@ -89,6 +91,23 @@ export default function CreateCountryPage() {
                 maxLength={2}
               />
               <p className="text-sm text-gray-500">ISO 3166-1 alpha-2 code (2 letters)</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="regionCode">Region / State Code (optional)</Label>
+              <Input
+                id="regionCode"
+                type="text"
+                placeholder="e.g., IN-MH, IN-GA (Calendarific location code)"
+                value={formData.regionCode}
+                onChange={(e) =>
+                  setFormData({ ...formData, regionCode: e.target.value.toUpperCase() })
+                }
+              />
+              <p className="text-sm text-gray-500">
+                Optional. Used for precise holiday imports with Calendarific (location code, usually
+                COUNTRY-STATE like IN-MH).
+              </p>
             </div>
 
             <div className="flex gap-4">
