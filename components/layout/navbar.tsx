@@ -65,7 +65,7 @@ export function Navbar({ user }: NavbarProps) {
               Manager Dashboard
             </Button>
           )}
-          {isManager && (
+          {(isManager || isAdmin) && (
             <Button variant="ghost" onClick={() => router.push('/dashboard')} className="text-gray-700 hover:text-[#eb0854]">
               My Vacations
             </Button>

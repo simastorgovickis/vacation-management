@@ -14,12 +14,8 @@ export default async function DashboardLayout({
     redirect('/auth/login')
   }
 
-  if (user.role === 'ADMIN') {
-    redirect('/admin')
-  }
-
-  // Managers can also access employee dashboard to request their own vacations
-  // They'll be redirected to manager dashboard by default, but can access /dashboard directly
+  // Managers and admins can access /dashboard to request their own vacations
+  // (Admins get "My Vacations" in navbar; default home for admin is still /admin)
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
           <Navbar user={user} />
