@@ -69,6 +69,7 @@ function ResetPasswordPageInner() {
         body: JSON.stringify({
           token,
           newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
         }),
       })
 
