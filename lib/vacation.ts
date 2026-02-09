@@ -1,8 +1,8 @@
 import { prisma } from './prisma'
 import { differenceInDays, addDays, startOfMonth, endOfMonth, format } from 'date-fns'
 
-const MONTHLY_ACCRUAL_RATE = 20 / 12 // 1.6667 days per month
-const DEFAULT_YEARLY_ALLOWANCE = 20
+const MONTHLY_ACCRUAL_RATE = 30 / 12 // 2.5 days per month (kept for legacy/monthly flows)
+const DEFAULT_YEARLY_ALLOWANCE = 30
 
 /**
  * Calculate vacation days between two dates (inclusive)
