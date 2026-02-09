@@ -43,9 +43,42 @@ export async function PATCH(
       )
     }
 
-    const { name, role, employmentDate, yearlyAllowance, managerId, countryId } = validationResult.data
+    const { email, name, role, employmentDate, yearlyAllowance, managerId, countryId } = validationResult.data
 
     const updateData: Prisma.UserUpdateInput = {}
+    if (email !== undefined) {
+      // Keep Supabase Auth email in sync when changed
+      if (email !== user.email) {
+        const supabase = createAdminClient()
+        const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers()
+        if (listError) {
+          return NextResponse.json(
+            { error: listError.message || 'Failed to list authentication users' },
+            { status: 500 }
+          )
+        }
+
+        const authUser = authUsers.users.find((u) => u.email === user.email)
+        if (authUser) {
+          const { error: updateError } = await supabase.auth.admin.updateUserById(authUser.id, {
+            email,
+          })
+          if (updateError) {
+            return NextResponse.json(
+              { error: updateError.message || 'Failed to update authentication email' },
+              { status: 500 }
+            )
+          }
+        } else {
+          logger.warn('Supabase auth user not found when updating email', {
+            userId: user.id,
+            oldEmail: user.email,
+            newEmail: email,
+          })
+        }
+      }
+      updateData.email = email
+    }
     if (name !== undefined) updateData.name = name
     if (role !== undefined) updateData.role = role
     if (employmentDate !== undefined) updateData.employmentDate = employmentDate

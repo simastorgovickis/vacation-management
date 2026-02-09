@@ -23,6 +23,7 @@ export default function EditUserPage() {
 
   const [userEmail, setUserEmail] = useState('')
   const [formData, setFormData] = useState({
+    email: '',
     name: '',
     role: '',
     employmentDate: '',
@@ -57,6 +58,7 @@ export default function EditUserPage() {
         if (user) {
           setUserEmail(user.email || '')
           setFormData({
+            email: user.email,
             name: user.name,
             role: user.role,
             employmentDate: user.employmentDate
@@ -160,6 +162,7 @@ export default function EditUserPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          email: formData.email,
           name: formData.name,
           role: formData.role,
           employmentDate: formData.employmentDate,
@@ -263,6 +266,17 @@ export default function EditUserPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>

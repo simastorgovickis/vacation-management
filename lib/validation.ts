@@ -60,6 +60,7 @@ export const createUserSchema = z.object({
 })
 
 export const updateUserSchema = z.object({
+  email: emailSchema.optional(),
   name: nameSchema.optional(),
   role: roleSchema.optional(),
   employmentDate: employmentDateSchema.optional().nullable(),
