@@ -41,7 +41,12 @@ export async function getOrCreateVacationBalance(userId: string, year: number) {
 }
 
 /**
- * Calculate accrued vacation days for a user up to a specific date
+ * Calculate accrued vacation days for a user up to a specific date.
+ *
+ * New behavior: DAILY accrual within the current year, based on DEFAULT_YEARLY_ALLOWANCE.
+ * - If employment date is in the future relative to targetDate → 0.
+ * - If employment starts mid‑year, we only accrue from that date.
+ * - If employment started in a previous year, we accrue from Jan 1 of current year.
  */
 export async function calculateAccruedDays(
   userId: string,
@@ -55,53 +60,43 @@ export async function calculateAccruedDays(
     return 0
   }
 
-  const startDate = user.employmentDate
+  const employmentDate = new Date(user.employmentDate)
   const currentYear = targetDate.getFullYear()
-  const currentMonth = targetDate.getMonth() + 1
 
-  // Get all accrual logs for the current year
-  const accrualLogs = await prisma.vacationAccrualLog.findMany({
-    where: {
-      userId,
-      year: currentYear,
-    },
-  })
-
-  // Calculate months to accrue
-  const startYear = startDate.getFullYear()
-  const startMonth = startDate.getMonth() + 1
-
-  let totalAccrued = 0
-
-  // For each month from employment start to current month
-  for (let year = startYear; year <= currentYear; year++) {
-    const monthStart = year === startYear ? startMonth : 1
-    const monthEnd = year === currentYear ? currentMonth : 12
-
-    for (let month = monthStart; month <= monthEnd; month++) {
-      // Check if already accrued
-      const existingLog = accrualLogs.find(
-        (log) => log.year === year && log.month === month
-      )
-
-      if (existingLog) {
-        totalAccrued += existingLog.daysAccrued
-      } else {
-        // Need to accrue this month
-        await prisma.vacationAccrualLog.create({
-          data: {
-            userId,
-            year,
-            month,
-            daysAccrued: MONTHLY_ACCRUAL_RATE,
-          },
-        })
-        totalAccrued += MONTHLY_ACCRUAL_RATE
-      }
-    }
+  // If targetDate is before employment, nothing accrued
+  if (targetDate < employmentDate) {
+    return 0
   }
 
-  return totalAccrued
+  // Define the accrual window within the current year
+  const yearStart = new Date(currentYear, 0, 1)
+  const yearEnd = new Date(currentYear, 11, 31)
+
+  // Start accruing from the later of employment date or Jan 1 of current year
+  const accrualStart =
+    employmentDate > yearStart ? new Date(employmentDate) : new Date(yearStart)
+
+  // Accrue up to targetDate (but not beyond Dec 31 of current year)
+  const accrualEnd = targetDate < yearEnd ? new Date(targetDate) : new Date(yearEnd)
+
+  // Normalize to midnight to avoid partial‑day issues
+  accrualStart.setHours(0, 0, 0, 0)
+  accrualEnd.setHours(0, 0, 0, 0)
+
+  // If start is after end, no accrual in this year
+  if (accrualStart > accrualEnd) {
+    return 0
+  }
+
+  const daysInYear = differenceInDays(yearEnd, yearStart) + 1
+  const employedDaysThisYear = differenceInDays(accrualEnd, accrualStart) + 1
+
+  if (employedDaysThisYear <= 0) {
+    return 0
+  }
+
+  const dailyRate = DEFAULT_YEARLY_ALLOWANCE / daysInYear
+  return employedDaysThisYear * dailyRate
 }
 
 /**
