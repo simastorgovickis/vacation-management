@@ -64,6 +64,10 @@ export async function PATCH(
 
       // Handle manager assignment
       if (managerId !== undefined) {
+        // Remove any existing manager assignment for this employee so they have exactly one manager
+        await tx.managerEmployee.deleteMany({
+          where: { employeeId: id },
+        })
         if (managerId) {
           // Prevent self-assignment
           if (managerId === id) {
@@ -122,14 +126,8 @@ export async function PATCH(
               },
             },
           })
-        } else {
-          // Remove manager assignment
-          await tx.managerEmployee.deleteMany({
-            where: {
-              employeeId: id,
-            },
-          })
         }
+        // else: already deleted above
       }
 
       if (role && role !== user.role) {

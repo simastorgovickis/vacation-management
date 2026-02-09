@@ -37,69 +37,75 @@ export async function POST(
     const startDate = `${targetYear}-01-01`
     const endDate = `${targetYear}-12-31`
 
-    // Try multiple holiday APIs as fallback
+    // Try holiday APIs for the requested year only (no importing a different year)
     let apiHolidays: any[] = []
-    let lastError: string | null = null
 
-    // Try date.nager.at API first (more reliable, supports 100+ countries)
+    // 1) Nager.Date – 100+ countries (does NOT include India IN)
     try {
       const nagerUrl = `https://date.nager.at/api/v3/PublicHolidays/${targetYear}/${country.code}`
       const response = await fetch(nagerUrl, {
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { 'Accept': 'application/json' },
       })
-      
       if (response.ok) {
         const data = await response.json()
         if (Array.isArray(data) && data.length > 0) {
           apiHolidays = data.map((h: any) => ({
-            name: h.localName || h.name, // Use local name if available
+            name: h.localName || h.name,
             date: h.date,
             startDate: h.date,
           }))
         }
-      } else {
-        lastError = `Nager API returned ${response.status}: ${response.statusText}`
       }
-    } catch (error: any) {
-      lastError = `Nager API error: ${error.message}`
-    }
+    } catch (_) {}
 
-    // Fallback: Try OpenHolidays API
+    // 2) OpenHolidays API (mainly European + some others; does NOT include India)
     if (apiHolidays.length === 0) {
       try {
         const openHolidaysUrl = `https://openholidaysapi.org/PublicHolidays?countryIsoCode=${country.code}&validFrom=${startDate}&validTo=${endDate}`
         const response = await fetch(openHolidaysUrl, {
-          headers: {
-            'Accept': 'application/json',
-          },
+          headers: { 'Accept': 'application/json' },
         })
-        
         if (response.ok) {
           const data = await response.json()
-          if (Array.isArray(data)) {
-            apiHolidays = data
-          } else if (data.holidays && Array.isArray(data.holidays)) {
-            apiHolidays = data.holidays
+          const list = Array.isArray(data) ? data : data?.holidays
+          if (Array.isArray(list) && list.length > 0) {
+            apiHolidays = list.map((h: any) => {
+              const name = typeof h.name === 'string' ? h.name : (h.name?.[0]?.text ?? h.name?.en ?? 'Unknown Holiday')
+              const dateStr = h.startDate || h.date || h.dateISO || h.dateString
+              return { name, date: dateStr, startDate: dateStr }
+            })
           }
-        } else {
-          lastError = lastError 
-            ? `${lastError}; OpenHolidays API returned ${response.status}`
-            : `OpenHolidays API returned ${response.status}: ${response.statusText}`
         }
-      } catch (error: any) {
-        lastError = lastError 
-          ? `${lastError}; OpenHolidays API error: ${error.message}`
-          : `OpenHolidays API error: ${error.message}`
-      }
+      } catch (_) {}
+    }
+
+    // 3) Calendarific (optional) – supports India and 230+ countries; requires free API key
+    if (apiHolidays.length === 0 && process.env.CALENDARIFIC_API_KEY) {
+      try {
+        const calUrl = `https://calendarific.com/api/v2/holidays?api_key=${process.env.CALENDARIFIC_API_KEY}&country=${country.code}&year=${targetYear}`
+        const response = await fetch(calUrl, { headers: { 'Accept': 'application/json' } })
+        if (response.ok) {
+          const data = await response.json()
+          const list = data?.response?.holidays
+          if (Array.isArray(list) && list.length > 0) {
+            apiHolidays = list.map((h: any) => {
+              const dateStr = h.date?.iso || (h.date?.datetime ? `${h.date.datetime.year}-${String(h.date.datetime.month).padStart(2, '0')}-${String(h.date.datetime.day).padStart(2, '0')}` : '')
+              return { name: h.name || 'Unknown Holiday', date: dateStr, startDate: dateStr }
+            })
+          }
+        }
+      } catch (_) {}
     }
 
     if (apiHolidays.length === 0) {
+      const isIndia = country.code.toUpperCase() === 'IN'
+      const suggestion = isIndia
+        ? `India (IN) is not supported by the free APIs (Nager.Date, OpenHolidays). To import India holidays:\n1. Get a free API key at https://calendarific.com and add CALENDARIFIC_API_KEY to your environment, then try again.\n2. Or add holidays manually using the form below.`
+        : `Please verify:\n1. The country code "${country.code}" is correct (ISO 3166-1 alpha-2)\n2. The country is supported by the holiday APIs (Nager.Date does not support all countries)\n3. You can add CALENDARIFIC_API_KEY (free at calendarific.com) for more countries including India\n4. Or add holidays manually using the form below`
       return NextResponse.json(
-        { 
+        {
           error: `No holidays found for ${country.name} (${country.code}) in ${targetYear}.`,
-          suggestion: `Please verify:\n1. The country code "${country.code}" is correct (ISO 3166-1 alpha-2)\n2. The country is supported by the holiday APIs\n3. You can manually add holidays using the form below`
+          suggestion,
         },
         { status: 404 }
       )

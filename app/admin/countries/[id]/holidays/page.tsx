@@ -45,6 +45,7 @@ export default function ManageHolidaysPage() {
     skipped: number
     importedNames: string[]
     skippedNames: string[]
+    message?: string
   } | null>(null)
 
   useEffect(() => {
@@ -235,6 +236,12 @@ export default function ManageHolidaysPage() {
         <Alert className={importResult.imported > 0 ? 'border-green-500' : 'border-yellow-500'}>
           <AlertDescription>
             <strong>Import completed!</strong>
+            {importResult.message && (
+              <>
+                <br />
+                <span className="text-amber-700">{importResult.message}</span>
+              </>
+            )}
             <br />
             Imported: {importResult.imported} holidays
             {importResult.skipped > 0 && <>, Skipped: {importResult.skipped} (already exist)</>}

@@ -14,6 +14,8 @@ model AuditLog {
   action       AuditAction
   details      Json
   createdAt    DateTime    @default(now())
+  actor     User? @relation("AuditLogActor", fields: [userId], references: [id])
+  targetUser User? @relation("AuditLogTarget", fields: [targetUserId], references: [id])
 
   @@index([action])
   @@index([createdAt])
@@ -91,6 +93,8 @@ model User {
   VacationAccrualLog                               VacationAccrualLog[]
   VacationBalance                                  VacationBalance[]
   VacationRequest                                  VacationRequest[]
+  auditLogsAsActor   AuditLog[] @relation("AuditLogActor")
+  auditLogsAsTarget  AuditLog[] @relation("AuditLogTarget")
 
   @@index([countryId])
   @@index([email])

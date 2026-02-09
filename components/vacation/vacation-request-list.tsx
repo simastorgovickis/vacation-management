@@ -175,19 +175,24 @@ export function VacationRequestList({
                       Cancel
                     </Button>
                   )}
-                  {showCancel && vacation.status === 'APPROVED' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        if (confirm('Request cancellation of this approved vacation? Your manager will need to approve.')) {
-                          handleStatusChange(vacation.id, 'CANCELLATION_REQUESTED')
-                        }
-                      }}
-                    >
-                      Request Cancellation
-                    </Button>
-                  )}
+                  {showCancel && vacation.status === 'APPROVED' && (() => {
+                    const startOfToday = new Date()
+                    startOfToday.setHours(0, 0, 0, 0)
+                    const isFuture = new Date(vacation.startDate) >= startOfToday
+                    return isFuture ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (confirm('Request cancellation of this approved vacation? Your manager will need to approve.')) {
+                            handleStatusChange(vacation.id, 'CANCELLATION_REQUESTED')
+                          }
+                        }}
+                      >
+                        Request Cancellation
+                      </Button>
+                    ) : null
+                  })()}
                 </div>
               </TableCell>
             )}

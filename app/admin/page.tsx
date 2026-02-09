@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { UserManagement } from '@/components/admin/user-management'
 import { AuditLogs } from '@/components/admin/audit-logs'
+import { VacationRequestList } from '@/components/vacation/vacation-request-list'
 
 export default async function AdminDashboard() {
   const admin = await requireRole(['ADMIN'])
@@ -13,11 +14,30 @@ export default async function AdminDashboard() {
     prisma.user.count(),
     prisma.user.count({ where: { role: 'EMPLOYEE' } }),
     prisma.user.count({ where: { role: 'MANAGER' } }),
-    prisma.vacationRequest.count({ where: { status: 'PENDING' } }),
+    prisma.vacationRequest.count({
+      where: { status: { in: ['PENDING', 'CANCELLATION_REQUESTED'] } },
+    }),
     prisma.vacationRequest.count(),
   ])
 
   const [totalUsers, employees, managers, pendingRequests, totalRequests] = stats
+
+  // All pending requests (new vacations + cancellation requests) for admin to approve/reject
+  const allPendingRequests = await prisma.vacationRequest.findMany({
+    where: {
+      status: { in: ['PENDING', 'CANCELLATION_REQUESTED'] },
+    },
+    include: {
+      User: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
 
   // Check if admin is also a manager (has employees assigned)
   const teamRelations = await prisma.managerEmployee.findMany({
@@ -36,27 +56,9 @@ export default async function AdminDashboard() {
   const isManager = teamRelations.length > 0
   const teamMemberIds = teamRelations.map((t) => t.employeeId)
 
-  // Get pending requests from admin's team (if they're a manager)
+  // Team-only pending (for "My Team" card when admin is also manager)
   const teamPendingRequests = isManager
-    ? await prisma.vacationRequest.findMany({
-        where: {
-          userId: { in: teamMemberIds },
-          status: 'PENDING',
-        },
-        include: {
-          User: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 5, // Show top 5
-      })
+    ? allPendingRequests.filter((r) => teamMemberIds.includes(r.userId)).slice(0, 5)
     : []
 
   return (
@@ -100,13 +102,30 @@ export default async function AdminDashboard() {
         <Card className="shadow-sm hover:shadow-md transition-shadow border-[#eb0854]/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium">Pending Requests</CardTitle>
-            <CardDescription className="text-xs">Awaiting approval</CardDescription>
+            <CardDescription className="text-xs">New vacations + cancellation requests</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-[#eb0854]">{pendingRequests}</div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin: all pending requests (approve/reject like super manager) */}
+      {allPendingRequests.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>All Pending Requests</CardTitle>
+            <CardDescription>Approve or reject any employee request (new vacation or cancellation)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VacationRequestList
+              vacations={allPendingRequests}
+              showActions={true}
+              showCancel={false}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {isManager && (
         <Card className="shadow-sm">
