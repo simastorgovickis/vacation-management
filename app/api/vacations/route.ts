@@ -7,6 +7,9 @@ import { createVacationSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, AuthenticationError, ValidationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
+import {
+  sendManagerNewVacationRequestEmail,
+} from '@/lib/email'
 
 // GET /api/vacations - List vacations
 export async function GET(request: NextRequest) {
@@ -166,6 +169,40 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    // Notify manager(s) about new vacation request (fire-and-forget)
+    try {
+      const managerRelations = await prisma.managerEmployee.findMany({
+        where: { employeeId: user.id },
+        include: {
+          User_ManagerEmployee_managerIdToUser: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      })
+
+      await Promise.all(
+        managerRelations
+          .map((rel) => rel.User_ManagerEmployee_managerIdToUser)
+          .filter((m) => m && m.email)
+          .map((manager) =>
+            sendManagerNewVacationRequestEmail({
+              managerEmail: manager.email,
+              managerName: manager.name,
+              employeeName: vacation.User.name,
+              startDate: startDate,
+              endDate: endDate,
+              comment,
+            })
+          )
+      )
+    } catch (notifyError) {
+      logger.error('Failed to send manager notification for new vacation request', {
+        error: notifyError,
+        userId: user.id,
+        vacationId: vacation.id,
+      })
+    }
 
     logger.info('Vacation request created', { userId: user.id, vacationId: vacation.id, days: vacation.days })
     return NextResponse.json({ vacation }, { status: 201 })

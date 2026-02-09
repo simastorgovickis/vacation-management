@@ -6,6 +6,7 @@ import crypto from 'crypto'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, NotFoundError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
+import { sendTemporaryPasswordEmail } from '@/lib/email'
 
 // POST /api/users/[id]/reset-password - Generate and set a new password
 export async function POST(
@@ -82,6 +83,21 @@ export async function POST(
 
     logger.info('Password reset by admin', { adminId: admin.id, userId: user.id })
     
+    // Send temporary password to the user via email (do not log the password)
+    try {
+      await sendTemporaryPasswordEmail({
+        email: user.email,
+        name: user.name,
+        username: user.email,
+        temporaryPassword: newPassword,
+      })
+    } catch (emailError) {
+      logger.error('Failed to send temporary password email', {
+        error: emailError,
+        userId: user.id,
+      })
+    }
+
     // Never log the password - only return for UI display
     return NextResponse.json({
       success: true,

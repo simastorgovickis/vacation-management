@@ -6,6 +6,10 @@ import { updateVacationSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, NotFoundError, AuthorizationError, ValidationError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
+import {
+  sendManagerCancellationRequestEmail,
+  sendVacationStatusEmailToEmployee,
+} from '@/lib/email'
 
 // GET /api/vacations/[id] - Get single vacation
 export async function GET(
@@ -242,6 +246,54 @@ export async function PATCH(
         },
       },
     })
+
+    // Notifications (best-effort, safe to fail silently)
+    try {
+      // 1) Employee notifications on final status changes
+      if (status === 'APPROVED' || status === 'REJECTED' || (status === 'CANCELLED' && vacation.status === 'CANCELLATION_REQUESTED')) {
+        await sendVacationStatusEmailToEmployee({
+          employeeEmail: updated.User.email,
+          employeeName: updated.User.name,
+          startDate: updated.startDate.toISOString().split('T')[0],
+          endDate: updated.endDate.toISOString().split('T')[0],
+          status: status as 'APPROVED' | 'REJECTED' | 'CANCELLED',
+        })
+      }
+
+      // 2) Manager notification when employee requests cancellation
+      if (status === 'CANCELLATION_REQUESTED' && vacation.status === 'APPROVED') {
+        const managerRelations = await prisma.managerEmployee.findMany({
+          where: { employeeId: vacation.userId },
+          include: {
+            User_ManagerEmployee_managerIdToUser: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        })
+
+        await Promise.all(
+          managerRelations
+            .map((rel) => rel.User_ManagerEmployee_managerIdToUser)
+            .filter((m) => m && m.email)
+            .map((manager) =>
+              sendManagerCancellationRequestEmail({
+                managerEmail: manager.email,
+                managerName: manager.name,
+                employeeName: updated.User.name,
+                startDate: updated.startDate.toISOString().split('T')[0],
+                endDate: updated.endDate.toISOString().split('T')[0],
+              })
+            )
+        )
+      }
+    } catch (notifyError) {
+      logger.error('Failed to send vacation notification email', {
+        error: notifyError,
+        userId: user.id,
+        vacationId: id,
+        newStatus: status,
+      })
+    }
 
     logger.info('Vacation request updated', { 
       userId: user.id, 
