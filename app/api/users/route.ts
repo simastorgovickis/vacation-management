@@ -103,7 +103,12 @@ export async function POST(request: NextRequest) {
       })
 
       if (authError) {
-        throw new Error(authError.message)
+        // Most common case: auth user with this email already exists
+        const message =
+          authError.message && authError.message.toLowerCase().includes('already')
+            ? 'User with this email already exists in authentication.'
+            : authError.message || 'Failed to create authentication user.'
+        throw new AppError(message, 400)
       }
 
       // Create user in our database
