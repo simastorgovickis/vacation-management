@@ -9,7 +9,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole(['ADMIN'])
+    const user = await requireRole(['ADMIN'])
     const { id } = await params
     const body = await request.json()
 
@@ -191,6 +191,21 @@ export async function POST(
         }
       }
     }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'HOLIDAYS_IMPORTED',
+        details: {
+          countryId: id,
+          countryName: country.name,
+          countryCode: country.code,
+          year: targetYear,
+          imported: imported.length,
+          skipped: skipped.length,
+        },
+      },
+    })
 
     return NextResponse.json({
       success: true,

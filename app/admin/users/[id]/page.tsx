@@ -319,7 +319,7 @@ export default function EditUserPage() {
               </p>
             </div>
 
-            {(formData.role === 'EMPLOYEE' || formData.role === 'MANAGER') && (
+            {(formData.role === 'EMPLOYEE' || formData.role === 'MANAGER' || formData.role === 'ADMIN') && (
               <div className="space-y-2">
                 <Label htmlFor="managerId">Assign to Manager</Label>
                 <Select

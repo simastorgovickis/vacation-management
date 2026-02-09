@@ -69,23 +69,31 @@ export async function GET(
   }
 }
 
-// PATCH /api/balances/[userId] - Adjust balance (Admin only)
+// PATCH /api/balances/[userId] - Adjust balance (Admin & Manager)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const admin = await requireRole(['ADMIN'])
+    const actor = await requireRole(['ADMIN', 'MANAGER'])
     const { userId } = await params
     
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-    const rateLimit = apiRateLimiter(`${ip}-${admin.id}`)
+    const rateLimit = apiRateLimiter(`${ip}-${actor.id}`)
     if (!rateLimit.allowed) {
       throw new RateLimitError('Too many requests', rateLimit.resetAt)
     }
 
     const body = await request.json()
+
+    // Managers can only adjust balances for employees they can access
+    if (actor.role === 'MANAGER') {
+      const canAccess = await canAccessEmployeeData(actor, userId)
+      if (!canAccess) {
+        throw new AuthorizationError()
+      }
+    }
 
     // Validate input
     const validationResult = adjustBalanceSchema.safeParse(body)
@@ -125,7 +133,7 @@ export async function PATCH(
       // Log the adjustment
       await tx.auditLog.create({
         data: {
-          userId: admin.id,
+          userId: actor.id,
           targetUserId: userId,
           action: 'BALANCE_ADJUSTMENT',
           details: {
@@ -140,7 +148,7 @@ export async function PATCH(
     })
 
     logger.info('Balance adjusted', { 
-      adminId: admin.id, 
+      actorId: actor.id, 
       userId, 
       amount: adjustmentAmount,
       reason: reason.trim()

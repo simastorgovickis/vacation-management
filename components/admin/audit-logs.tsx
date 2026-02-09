@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
 const ACTIONS = [
   { value: '__all__', label: 'All actions' },
   { value: 'BALANCE_ADJUSTMENT', label: 'Balance adjustment' },
@@ -30,6 +30,7 @@ const ACTIONS = [
   { value: 'USER_UPDATED', label: 'User updated' },
   { value: 'ROLE_CHANGED', label: 'Role changed' },
   { value: 'MANAGER_ASSIGNED', label: 'Manager assigned' },
+  { value: 'HOLIDAYS_IMPORTED', label: 'Holidays imported' },
 ]
 
 interface AuditLogUser {

@@ -159,6 +159,7 @@ enum AuditAction {
   USER_UPDATED
   ROLE_CHANGED
   MANAGER_ASSIGNED
+  HOLIDAYS_IMPORTED
 }
 
 enum Role {

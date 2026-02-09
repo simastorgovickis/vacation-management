@@ -4,6 +4,8 @@ import { getAvailableVacationDays } from '@/lib/vacation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { VacationRequestList } from '@/components/vacation/vacation-request-list'
 import { TeamVacationCalendar } from '@/components/vacation/team-vacation-calendar'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export default async function ManagerDashboard() {
   const manager = await requireRole(['MANAGER', 'ADMIN'])
@@ -129,7 +131,16 @@ export default async function ManagerDashboard() {
                   <div className="font-medium">{employee.name}</div>
                   <div className="text-sm text-gray-500">{employee.email}</div>
                 </div>
-                <div className="text-lg font-semibold">{available.toFixed(1)} days</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-lg font-semibold whitespace-nowrap">
+                    {available.toFixed(1)} days
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/manager/team/${employee.id}/balance`}>
+                      Vacation balance
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ))}
             {teamBalances.length === 0 && (

@@ -11,6 +11,7 @@ const AUDIT_ACTIONS: AuditAction[] = [
   'USER_UPDATED',
   'ROLE_CHANGED',
   'MANAGER_ASSIGNED',
+  'HOLIDAYS_IMPORTED',
 ]
 
 // GET /api/audit-logs - Get audit logs (Admin only). Pagination + search by action type or actor.
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireRole(['ADMIN'])
     const searchParams = request.nextUrl.searchParams
-    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '5', 10) || 5, 1), 100)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10', 10) || 10, 1), 100)
     const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10) || 0, 0)
     const action = searchParams.get('action') as AuditAction | null
     const actorSearch = searchParams.get('actorSearch')?.trim() || null
