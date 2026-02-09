@@ -63,6 +63,7 @@ export function ProfileView({ user, availableDays, manager }: ProfileViewProps) 
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
         }),
       })
 
