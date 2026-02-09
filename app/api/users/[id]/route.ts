@@ -187,18 +187,38 @@ export async function DELETE(
       throw new NotFoundError('User not found')
     }
 
-    // Delete Supabase Auth user first (best effort)
-    const supabase = createAdminClient()
-    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id)
-    if (deleteAuthError) {
-      // If the auth user doesn't exist, continue deleting DB user
-      logger.warn('Failed to delete Supabase auth user (continuing)', {
+    // Best-effort: delete Supabase Auth user (ignore errors, we still delete DB user)
+    try {
+      const supabase = createAdminClient()
+      const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id)
+      if (deleteAuthError) {
+        logger.warn('Failed to delete Supabase auth user (continuing)', {
+          userId: user.id,
+          error: deleteAuthError.message,
+        })
+      }
+    } catch (supabaseError: any) {
+      logger.warn('Error while deleting Supabase auth user (continuing)', {
         userId: user.id,
-        error: deleteAuthError.message,
+        error: supabaseError?.message ?? String(supabaseError),
       })
     }
 
-    await prisma.user.delete({ where: { id: user.id } })
+    // Use a transaction so we detach audit logs and then delete the user safely
+    await prisma.$transaction(async (tx) => {
+      // Detach audit logs where this user was actor or target to avoid FK constraint errors
+      await tx.auditLog.updateMany({
+        where: { userId: user.id },
+        data: { userId: null },
+      })
+      await tx.auditLog.updateMany({
+        where: { targetUserId: user.id },
+        data: { targetUserId: null },
+      })
+
+      // Now delete the user (other relations use onDelete: Cascade)
+      await tx.user.delete({ where: { id: user.id } })
+    })
 
     logger.info('User deleted', { adminId: admin.id, userId: user.id, email: user.email })
     return NextResponse.json({ success: true })
