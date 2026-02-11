@@ -63,14 +63,28 @@ export function TeamVacationCalendar({ vacations, teamMemberIds }: TeamVacationC
   const vacationEvents = vacations.map((vacation) => {
     const days = Math.round(vacation.days)
     const userName = vacation.User?.name || 'Unknown'
-    const statusText = vacation.status === 'APPROVED' ? '' : vacation.status === 'CANCELLATION_REQUESTED' ? ' (Cancellation Requested)' : ` (${vacation.status})`
+    const statusText =
+      vacation.status === 'APPROVED'
+        ? ''
+        : vacation.status === 'CANCELLATION_REQUESTED'
+          ? ' (Cancellation Requested)'
+          : ` (${vacation.status})`
     const title = `${userName}: ${days}${statusText}`
-    
+
+    // Normalise to all-day date strings to avoid timezone/off-by-one issues
+    const startDate = new Date(vacation.startDate)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(vacation.endDate)
+    endDate.setHours(0, 0, 0, 0)
+    const startStr = startDate.toISOString().split('T')[0]
+    const endExclusiveStr = new Date(endDate.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // +1 day because FullCalendar uses exclusive end for all-day events
+
     return {
       id: vacation.id,
       title,
-      start: vacation.startDate,
-      end: new Date(new Date(vacation.endDate).getTime() + 24 * 60 * 60 * 1000), // Add 1 day for inclusive end
+      start: startStr,
+      end: endExclusiveStr,
+      allDay: true,
       color:
         vacation.status === 'APPROVED'
           ? '#10b981'
