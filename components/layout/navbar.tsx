@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,6 +23,19 @@ interface NavbarProps {
 
 export function Navbar({ user }: NavbarProps) {
   const router = useRouter()
+  const [managerPendingCount, setManagerPendingCount] = useState(0)
+
+  const isManager = user.role === 'MANAGER'
+  const isAdmin = user.role === 'ADMIN'
+  const showManagerDashboard = isManager || isAdmin
+
+  useEffect(() => {
+    if (!showManagerDashboard) return
+    fetch('/api/manager/pending-count')
+      .then((res) => res.ok ? res.json() : { count: 0 })
+      .then((data) => setManagerPendingCount(data?.count ?? 0))
+      .catch(() => setManagerPendingCount(0))
+  }, [showManagerDashboard])
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -34,12 +48,6 @@ export function Navbar({ user }: NavbarProps) {
     if (user.role === 'MANAGER') return '/manager'
     return '/dashboard'
   }
-
-  // Managers can access both manager dashboard and employee dashboard
-  const isManager = user.role === 'MANAGER'
-  
-  // Admins can always access manager dashboard (manager layout allows ADMIN role)
-  const isAdmin = user.role === 'ADMIN'
 
   return (
     <nav className="border-b bg-white shadow-sm sticky top-0 z-50">
@@ -57,12 +65,18 @@ export function Navbar({ user }: NavbarProps) {
           <h1 className="text-lg font-semibold text-gray-800">Vacation Management</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => router.push(getDashboardPath())} className="text-gray-700 hover:text-[#eb0854]">
+          <Button variant="ghost" onClick={() => router.push(getDashboardPath())} className="text-gray-700 hover:text-[#eb0854] flex items-center gap-1.5">
             {user.role === 'ADMIN' ? 'Admin' : user.role === 'MANAGER' ? 'Manager' : 'Dashboard'}
+            {isManager && managerPendingCount > 0 && (
+              <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" title={`${managerPendingCount} request(s) need approval`} aria-hidden />
+            )}
           </Button>
           {isAdmin && (
-            <Button variant="ghost" onClick={() => router.push('/manager')} className="text-gray-700 hover:text-[#eb0854]">
+            <Button variant="ghost" onClick={() => router.push('/manager')} className="text-gray-700 hover:text-[#eb0854] flex items-center gap-1.5">
               Manager Dashboard
+              {managerPendingCount > 0 && (
+                <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" title={`${managerPendingCount} request(s) need approval`} aria-hidden />
+              )}
             </Button>
           )}
           {(isManager || isAdmin) && (
