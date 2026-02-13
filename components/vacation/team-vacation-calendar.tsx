@@ -71,13 +71,19 @@ export function TeamVacationCalendar({ vacations, teamMemberIds }: TeamVacationC
           : ` (${vacation.status})`
     const title = `${userName}: ${days}${statusText}`
 
-    // Normalise to all-day date strings to avoid timezone/off-by-one issues
+    // Use local calendar date so the displayed day matches the user's timezone (no UTC shift)
+    const toLocalYYYYMMDD = (d: Date) => {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
     const startDate = new Date(vacation.startDate)
-    startDate.setHours(0, 0, 0, 0)
     const endDate = new Date(vacation.endDate)
-    endDate.setHours(0, 0, 0, 0)
-    const startStr = startDate.toISOString().split('T')[0]
-    const endExclusiveStr = new Date(endDate.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // +1 day because FullCalendar uses exclusive end for all-day events
+    const startStr = toLocalYYYYMMDD(startDate)
+    const endInclusiveNext = new Date(endDate)
+    endInclusiveNext.setDate(endInclusiveNext.getDate() + 1)
+    const endExclusiveStr = toLocalYYYYMMDD(endInclusiveNext) // FullCalendar uses exclusive end for all-day
 
     return {
       id: vacation.id,
