@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
         where: { employeeId: user.id },
         include: {
           User_ManagerEmployee_managerIdToUser: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, notificationCopyEmail: true },
           },
         },
       })
@@ -193,6 +193,7 @@ export async function POST(request: NextRequest) {
               startDate: startDate,
               endDate: endDate,
               comment,
+              notificationCopyEmail: manager.notificationCopyEmail ?? undefined,
             })
           )
       )

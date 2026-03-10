@@ -48,6 +48,7 @@ export default async function ProfilePage() {
     email: userDetails.email,
     role: userDetails.role,
     employmentDate: userDetails.employmentDate,
+    notificationCopyEmail: userDetails.notificationCopyEmail ?? null,
     country: userDetails.Country
       ? { name: userDetails.Country.name, code: userDetails.Country.code }
       : null,

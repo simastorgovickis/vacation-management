@@ -43,7 +43,8 @@ export async function PATCH(
       )
     }
 
-    const { email, name, role, employmentDate, yearlyAllowance, managerId, countryId } = validationResult.data
+    const { email, name, role, employmentDate, yearlyAllowance, notificationCopyEmail, managerId, countryId } =
+      validationResult.data
 
     const updateData: Prisma.UserUpdateInput = {}
     if (email !== undefined) {
@@ -88,6 +89,7 @@ export async function PATCH(
         ? { connect: { id: countryId } }
         : { disconnect: true }
     }
+    if (notificationCopyEmail !== undefined) updateData.notificationCopyEmail = notificationCopyEmail
 
     // Use transaction for atomic updates
     const updated = await prisma.$transaction(async (tx) => {

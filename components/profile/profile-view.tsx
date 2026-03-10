@@ -15,6 +15,7 @@ interface ProfileViewProps {
     email: string
     role: string
     employmentDate: Date | null
+    notificationCopyEmail: string | null
     country: {
       name: string
       code: string
@@ -35,6 +36,9 @@ export function ProfileView({ user, availableDays, manager }: ProfileViewProps) 
     newPassword: '',
     confirmPassword: '',
   })
+  const [notificationCopyEmail, setNotificationCopyEmail] = useState(user.notificationCopyEmail ?? '')
+  const [notificationEmailSaving, setNotificationEmailSaving] = useState(false)
+  const [notificationEmailMessage, setNotificationEmailMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -143,6 +147,64 @@ export function ProfileView({ user, availableDays, manager }: ProfileViewProps) 
         <CardContent>
           <div className="text-3xl font-bold text-[#eb0854]">{availableDays.toFixed(1)} days</div>
           <p className="text-sm text-gray-500 mt-1">Available for use</p>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Slack channel / notification copy email</CardTitle>
+          <CardDescription>
+            Optional. If set, a copy of vacation-related notifications (new request, cancellation, approval, etc.) will be sent to this address. Use your Slack channel email so messages appear in the channel and avoid inbox filters.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {notificationEmailMessage && (
+            <Alert variant={notificationEmailMessage.type === 'error' ? 'destructive' : 'default'} className={notificationEmailMessage.type === 'success' ? 'border-green-500' : ''}>
+              <AlertDescription>{notificationEmailMessage.text}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[200px] space-y-2">
+              <Label htmlFor="notificationCopyEmail">Notification copy email</Label>
+              <Input
+                id="notificationCopyEmail"
+                type="email"
+                placeholder="e.g. channel-abc@chat.slack.com"
+                value={notificationCopyEmail}
+                onChange={(e) => {
+                  setNotificationCopyEmail(e.target.value)
+                  setNotificationEmailMessage(null)
+                }}
+              />
+            </div>
+            <Button
+              type="button"
+              disabled={notificationEmailSaving}
+              onClick={async () => {
+                setNotificationEmailMessage(null)
+                setNotificationEmailSaving(true)
+                try {
+                  const res = await fetch('/api/users/me', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notificationCopyEmail: notificationCopyEmail.trim() || '' }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) {
+                    setNotificationEmailMessage({ type: 'error', text: data.error || 'Failed to save' })
+                    return
+                  }
+                  setNotificationEmailMessage({ type: 'success', text: 'Saved. Notification copies will be sent to this address when applicable.' })
+                } catch {
+                  setNotificationEmailMessage({ type: 'error', text: 'Request failed' })
+                } finally {
+                  setNotificationEmailSaving(false)
+                }
+              }}
+            >
+              {notificationEmailSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

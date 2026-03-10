@@ -59,12 +59,20 @@ export const createUserSchema = z.object({
   initialBalance: z.coerce.number().optional().nullable(),
 })
 
+/** Optional email where notification copies are sent (e.g. Slack channel email). Empty string clears. */
+export const notificationCopyEmailSchema = z
+  .union([emailSchema, z.literal('')])
+  .optional()
+  .nullable()
+  .transform((v) => (v === '' ? null : v ?? null))
+
 export const updateUserSchema = z.object({
   email: emailSchema.optional(),
   name: nameSchema.optional(),
   role: roleSchema.optional(),
   employmentDate: employmentDateSchema.optional().nullable(),
   yearlyAllowance: z.coerce.number().min(0).max(365).optional().nullable(),
+  notificationCopyEmail: notificationCopyEmailSchema,
   // IDs are Prisma string IDs (cuid), not strict UUIDs
   managerId: z.string().min(1).optional().nullable(),
   countryId: z.string().min(1).optional().nullable(),

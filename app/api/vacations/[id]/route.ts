@@ -242,6 +242,7 @@ export async function PATCH(
             id: true,
             name: true,
             email: true,
+            notificationCopyEmail: true,
           },
         },
       },
@@ -257,6 +258,7 @@ export async function PATCH(
           startDate: updated.startDate.toISOString().split('T')[0],
           endDate: updated.endDate.toISOString().split('T')[0],
           status: status as 'APPROVED' | 'REJECTED' | 'CANCELLED',
+          notificationCopyEmail: updated.User.notificationCopyEmail ?? undefined,
         })
       }
 
@@ -266,7 +268,7 @@ export async function PATCH(
           where: { employeeId: vacation.userId },
           include: {
             User_ManagerEmployee_managerIdToUser: {
-              select: { id: true, name: true, email: true },
+              select: { id: true, name: true, email: true, notificationCopyEmail: true },
             },
           },
         })
@@ -282,6 +284,7 @@ export async function PATCH(
                 employeeName: updated.User.name,
                 startDate: updated.startDate.toISOString().split('T')[0],
                 endDate: updated.endDate.toISOString().split('T')[0],
+                notificationCopyEmail: manager.notificationCopyEmail ?? undefined,
               })
             )
         )
