@@ -12,6 +12,11 @@ import {
 } from '@/lib/email'
 import { postToSlackChannel } from '@/lib/slack'
 
+function getBaseUrl() {
+  const raw = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  return raw.replace(/\/+$/, '')
+}
+
 // GET /api/vacations - List vacations
 export async function GET(request: NextRequest) {
   try {
@@ -197,11 +202,12 @@ export async function POST(request: NextRequest) {
             })
 
             if (manager.slackNotificationsEnabled) {
+              const baseUrl = getBaseUrl()
               const lines = [
                 `New vacation request from *${vacation.User.name}*`,
                 `Dates: ${startDate} → ${endDate}`,
                 comment ? `Comment: ${comment}` : null,
-                `Review: ${process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/manager`,
+                `Review: ${baseUrl}/manager`,
               ].filter(Boolean)
               await postToSlackChannel(lines.join('\n'))
             }

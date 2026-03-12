@@ -12,6 +12,11 @@ import {
 } from '@/lib/email'
 import { postToSlackChannel } from '@/lib/slack'
 
+function getBaseUrl() {
+  const raw = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  return raw.replace(/\/+$/, '')
+}
+
 // GET /api/vacations/[id] - Get single vacation
 export async function GET(
   request: NextRequest,
@@ -262,7 +267,7 @@ export async function PATCH(
         })
 
         if (updated.User.slackNotificationsEnabled) {
-          const baseUrl = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          const baseUrl = getBaseUrl()
           const label =
             status === 'APPROVED'
               ? 'approved'
@@ -305,7 +310,7 @@ export async function PATCH(
               })
 
               if (manager.slackNotificationsEnabled) {
-                const baseUrl = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+                const baseUrl = getBaseUrl()
                 const text = [
                   `Cancellation requested: *${updated.User.name}*`,
                   `Dates: ${start} → ${end}`,
