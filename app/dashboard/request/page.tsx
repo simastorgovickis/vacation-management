@@ -16,6 +16,7 @@ export default function RequestVacationPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
+  const [excluded, setExcluded] = useState<{ weekends: number; holidays: number } | null>(null)
 
   // Recalculate when dates change
   useEffect(() => {
@@ -23,12 +24,14 @@ export default function RequestVacationPage() {
     const run = async () => {
       if (!startDate || !endDate) {
         setCalculatedDays(null)
+        setExcluded(null)
         return
       }
       const start = new Date(startDate + 'T00:00:00')
       const end = new Date(endDate + 'T00:00:00')
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
         setCalculatedDays(null)
+        setExcluded(null)
         return
       }
       try {
@@ -41,11 +44,19 @@ export default function RequestVacationPage() {
         if (cancelled) return
         if (!res.ok) {
           setCalculatedDays(null)
+          setExcluded(null)
           return
         }
-        setCalculatedDays(typeof data.days === 'number' ? data.days : null)
+        setCalculatedDays(typeof data.usedDays === 'number' ? data.usedDays : null)
+        setExcluded({
+          weekends: typeof data.excludedWeekendDays === 'number' ? data.excludedWeekendDays : 0,
+          holidays: typeof data.excludedHolidayDays === 'number' ? data.excludedHolidayDays : 0,
+        })
       } catch {
-        if (!cancelled) setCalculatedDays(null)
+        if (!cancelled) {
+          setCalculatedDays(null)
+          setExcluded(null)
+        }
       }
     }
     run()
@@ -130,6 +141,13 @@ export default function RequestVacationPage() {
                   This request will use <strong>{calculatedDays} days</strong> of your vacation
                   balance.
                 </p>
+                {excluded && (excluded.weekends > 0 || excluded.holidays > 0) && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Not counted: {excluded.weekends} weekend day{excluded.weekends === 1 ? '' : 's'}
+                    {excluded.holidays > 0 ? ` and ${excluded.holidays} public holiday${excluded.holidays === 1 ? '' : 's'}` : ''}
+                    .
+                  </p>
+                )}
               </div>
             )}
 

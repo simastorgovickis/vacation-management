@@ -274,9 +274,11 @@ export async function PATCH(
               : status === 'REJECTED'
                 ? 'rejected'
                 : 'cancelled'
+          const start = updated.startDate.toISOString().split('T')[0]
+          const end = updated.endDate.toISOString().split('T')[0]
           const text = [
-            `Your vacation request was *${label}*`,
-            `Dates: ${updated.startDate.toISOString().split('T')[0]} → ${updated.endDate.toISOString().split('T')[0]}`,
+            `Your vacation request for *${start} → ${end}* was *${label}*`,
+            `Employee: ${updated.User.name}`,
             `My vacations: ${baseUrl}/dashboard`,
           ].join('\n')
           await postToSlackChannel(text)

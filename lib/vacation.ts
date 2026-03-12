@@ -37,12 +37,28 @@ export async function calculateVacationDaysForUser(
   startDate: Date,
   endDate: Date
 ): Promise<number> {
+  const breakdown = await calculateVacationDaysBreakdownForUser(userId, startDate, endDate)
+  return breakdown.usedDays
+}
+
+export async function calculateVacationDaysBreakdownForUser(
+  userId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<{
+  totalCalendarDays: number
+  usedDays: number
+  excludedWeekendDays: number
+  excludedHolidayDays: number
+}> {
   const start = new Date(startDate)
   const end = new Date(endDate)
   start.setHours(0, 0, 0, 0)
   end.setHours(0, 0, 0, 0)
 
-  if (end < start) return 0
+  if (end < start) {
+    return { totalCalendarDays: 0, usedDays: 0, excludedWeekendDays: 0, excludedHolidayDays: 0 }
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -63,15 +79,24 @@ export async function calculateVacationDaysForUser(
     }
   }
 
-  let days = 0
+  let usedDays = 0
+  let excludedWeekendDays = 0
+  let excludedHolidayDays = 0
   for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
-    if (isWeekend(d)) continue
+    if (isWeekend(d)) {
+      excludedWeekendDays += 1
+      continue
+    }
     const key = toLocalYYYYMMDD(d)
-    if (holidaySet.has(key)) continue
-    days += 1
+    if (holidaySet.has(key)) {
+      excludedHolidayDays += 1
+      continue
+    }
+    usedDays += 1
   }
 
-  return days
+  const totalCalendarDays = differenceInDays(end, start) + 1
+  return { totalCalendarDays, usedDays, excludedWeekendDays, excludedHolidayDays }
 }
 
 /**

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { calculateVacationDaysForUser } from '@/lib/vacation'
+import { calculateVacationDaysBreakdownForUser } from '@/lib/vacation'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ days: 0 })
     }
 
-    const days = await calculateVacationDaysForUser(user.id, start, end)
-    return NextResponse.json({ days })
+    const breakdown = await calculateVacationDaysBreakdownForUser(user.id, start, end)
+    return NextResponse.json(breakdown)
   } catch (error: unknown) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
