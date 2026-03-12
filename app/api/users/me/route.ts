@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { notificationCopyEmailSchema } from '@/lib/validation'
+import { updateUserSchema } from '@/lib/validation'
 
 const patchMeSchema = z.object({
-  notificationCopyEmail: notificationCopyEmailSchema.optional(),
+  slackNotificationsEnabled: updateUserSchema.shape.slackNotificationsEnabled.optional(),
 })
 
-// PATCH /api/users/me - Update current user's profile (e.g. notification copy email)
+// PATCH /api/users/me - Update current user's profile settings
 export async function PATCH(request: NextRequest) {
   try {
     const user = await requireAuth()
@@ -22,16 +22,16 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    if (!('notificationCopyEmail' in body)) {
-      return NextResponse.json({ error: 'notificationCopyEmail is required' }, { status: 400 })
+    if (!('slackNotificationsEnabled' in body)) {
+      return NextResponse.json({ error: 'slackNotificationsEnabled is required' }, { status: 400 })
     }
-    const value = parsed.data.notificationCopyEmail ?? null
+    const value = Boolean(parsed.data.slackNotificationsEnabled)
     await prisma.user.update({
       where: { id: user.id },
-      data: { notificationCopyEmail: value },
+      data: { slackNotificationsEnabled: value },
     })
 
-    return NextResponse.json({ success: true, notificationCopyEmail: value })
+    return NextResponse.json({ success: true, slackNotificationsEnabled: value })
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       const e = error as { statusCode: number; message?: string }
@@ -53,7 +53,7 @@ export async function GET() {
         email: true,
         role: true,
         employmentDate: true,
-        notificationCopyEmail: true,
+        slackNotificationsEnabled: true,
         countryId: true,
         Country: { select: { name: true, code: true } },
       },
@@ -67,7 +67,7 @@ export async function GET() {
       email: dbUser.email,
       role: dbUser.role,
       employmentDate: dbUser.employmentDate,
-      notificationCopyEmail: dbUser.notificationCopyEmail,
+      slackNotificationsEnabled: dbUser.slackNotificationsEnabled,
       country: dbUser.Country ? { name: dbUser.Country.name, code: dbUser.Country.code } : null,
     })
   } catch (error: unknown) {

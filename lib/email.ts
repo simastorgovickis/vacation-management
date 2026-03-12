@@ -49,10 +49,8 @@ export async function sendManagerNewVacationRequestEmail(params: {
   startDate: string
   endDate: string
   comment?: string | null
-  /** When set (e.g. manager's Slack channel email), a copy is sent here so it appears in the channel */
-  notificationCopyEmail?: string | null
 }) {
-  const { managerEmail, managerName, employeeName, startDate, endDate, comment, notificationCopyEmail } = params
+  const { managerEmail, managerName, employeeName, startDate, endDate, comment } = params
   const subject = `New vacation request from ${employeeName}`
   const dashboardUrl = `${appBaseUrl}/manager`
   const textLines = [
@@ -69,9 +67,6 @@ export async function sendManagerNewVacationRequestEmail(params: {
 
   const text = textLines.join('\n')
   await safeSendEmail({ to: managerEmail, subject, text })
-  if (notificationCopyEmail?.trim()) {
-    await safeSendEmail({ to: notificationCopyEmail.trim(), subject, text })
-  }
 }
 
 export async function sendManagerCancellationRequestEmail(params: {
@@ -80,10 +75,8 @@ export async function sendManagerCancellationRequestEmail(params: {
   employeeName: string
   startDate: string
   endDate: string
-  /** When set (e.g. manager's Slack channel email), a copy is sent here */
-  notificationCopyEmail?: string | null
 }) {
-  const { managerEmail, managerName, employeeName, startDate, endDate, notificationCopyEmail } = params
+  const { managerEmail, managerName, employeeName, startDate, endDate } = params
   const subject = `Cancellation requested: ${employeeName}'s vacation`
   const dashboardUrl = `${appBaseUrl}/manager`
   const text = [
@@ -98,9 +91,6 @@ export async function sendManagerCancellationRequestEmail(params: {
   ].join('\n')
 
   await safeSendEmail({ to: managerEmail, subject, text })
-  if (notificationCopyEmail?.trim()) {
-    await safeSendEmail({ to: notificationCopyEmail.trim(), subject, text })
-  }
 }
 
 export async function sendVacationStatusEmailToEmployee(params: {
@@ -109,10 +99,8 @@ export async function sendVacationStatusEmailToEmployee(params: {
   startDate: string
   endDate: string
   status: 'APPROVED' | 'REJECTED' | 'CANCELLED'
-  /** When set (e.g. employee's Slack channel email), a copy is sent here */
-  notificationCopyEmail?: string | null
 }) {
-  const { employeeEmail, employeeName, startDate, endDate, status, notificationCopyEmail } = params
+  const { employeeEmail, employeeName, startDate, endDate, status } = params
   const subject =
     status === 'APPROVED'
       ? 'Your vacation request has been approved'
@@ -130,9 +118,6 @@ export async function sendVacationStatusEmailToEmployee(params: {
   ].join('\n')
 
   await safeSendEmail({ to: employeeEmail, subject, text })
-  if (notificationCopyEmail?.trim()) {
-    await safeSendEmail({ to: notificationCopyEmail.trim(), subject, text })
-  }
 }
 
 export async function sendTemporaryPasswordEmail(params: {
@@ -140,10 +125,8 @@ export async function sendTemporaryPasswordEmail(params: {
   name: string
   username: string
   temporaryPassword: string
-  /** When set (e.g. user's Slack channel email), a copy is sent here */
-  notificationCopyEmail?: string | null
 }) {
-  const { email, name, username, temporaryPassword, notificationCopyEmail } = params
+  const { email, name, username, temporaryPassword } = params
   const subject = 'Your temporary password'
   const text = [
     `Hi ${name},`,
@@ -161,8 +144,5 @@ export async function sendTemporaryPasswordEmail(params: {
 
   // IMPORTANT: we never log the password; only send via email
   await safeSendEmail({ to: email, subject, text })
-  if (notificationCopyEmail?.trim()) {
-    await safeSendEmail({ to: notificationCopyEmail.trim(), subject, text })
-  }
 }
 

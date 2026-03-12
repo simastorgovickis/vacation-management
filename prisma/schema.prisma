@@ -86,8 +86,8 @@ model User {
   role                                             Role                 @default(EMPLOYEE)
   employmentDate                                   DateTime?
   yearlyAllowance                                  Float?               @default(30)
-  /** Optional: e.g. Slack channel email – notification copies are sent here so they appear in the channel */
-  notificationCopyEmail                             String?
+  /** Optional: post notifications to the configured Slack channel webhook */
+  slackNotificationsEnabled                        Boolean              @default(false)
   createdAt                                        DateTime             @default(now())
   updatedAt                                        DateTime             @updatedAt
   countryId                                        String?

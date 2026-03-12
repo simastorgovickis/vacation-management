@@ -10,6 +10,7 @@ import {
   sendManagerCancellationRequestEmail,
   sendVacationStatusEmailToEmployee,
 } from '@/lib/email'
+import { postToSlackChannel } from '@/lib/slack'
 
 // GET /api/vacations/[id] - Get single vacation
 export async function GET(
@@ -242,7 +243,7 @@ export async function PATCH(
             id: true,
             name: true,
             email: true,
-            notificationCopyEmail: true,
+            slackNotificationsEnabled: true,
           },
         },
       },
@@ -258,8 +259,23 @@ export async function PATCH(
           startDate: updated.startDate.toISOString().split('T')[0],
           endDate: updated.endDate.toISOString().split('T')[0],
           status: status as 'APPROVED' | 'REJECTED' | 'CANCELLED',
-          notificationCopyEmail: updated.User.notificationCopyEmail ?? undefined,
         })
+
+        if (updated.User.slackNotificationsEnabled) {
+          const baseUrl = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          const label =
+            status === 'APPROVED'
+              ? 'approved'
+              : status === 'REJECTED'
+                ? 'rejected'
+                : 'cancelled'
+          const text = [
+            `Your vacation request was *${label}*`,
+            `Dates: ${updated.startDate.toISOString().split('T')[0]} → ${updated.endDate.toISOString().split('T')[0]}`,
+            `My vacations: ${baseUrl}/dashboard`,
+          ].join('\n')
+          await postToSlackChannel(text)
+        }
       }
 
       // 2) Manager notification when employee requests cancellation
@@ -268,7 +284,7 @@ export async function PATCH(
           where: { employeeId: vacation.userId },
           include: {
             User_ManagerEmployee_managerIdToUser: {
-              select: { id: true, name: true, email: true, notificationCopyEmail: true },
+              select: { id: true, name: true, email: true, slackNotificationsEnabled: true },
             },
           },
         })
@@ -277,16 +293,27 @@ export async function PATCH(
           managerRelations
             .map((rel) => rel.User_ManagerEmployee_managerIdToUser)
             .filter((m) => m && m.email)
-            .map((manager) =>
-              sendManagerCancellationRequestEmail({
+            .map(async (manager) => {
+              const start = updated.startDate.toISOString().split('T')[0]
+              const end = updated.endDate.toISOString().split('T')[0]
+              await sendManagerCancellationRequestEmail({
                 managerEmail: manager.email,
                 managerName: manager.name,
                 employeeName: updated.User.name,
-                startDate: updated.startDate.toISOString().split('T')[0],
-                endDate: updated.endDate.toISOString().split('T')[0],
-                notificationCopyEmail: manager.notificationCopyEmail ?? undefined,
+                startDate: start,
+                endDate: end,
               })
-            )
+
+              if (manager.slackNotificationsEnabled) {
+                const baseUrl = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+                const text = [
+                  `Cancellation requested: *${updated.User.name}*`,
+                  `Dates: ${start} → ${end}`,
+                  `Review: ${baseUrl}/manager`,
+                ].join('\n')
+                await postToSlackChannel(text)
+              }
+            })
         )
       }
     } catch (notifyError) {

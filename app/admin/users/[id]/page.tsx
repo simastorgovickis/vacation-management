@@ -28,7 +28,7 @@ export default function EditUserPage() {
     role: '',
     employmentDate: '',
     yearlyAllowance: '',
-    notificationCopyEmail: '',
+    slackNotificationsEnabled: false,
     managerId: '',
     countryId: '',
   })
@@ -66,7 +66,7 @@ export default function EditUserPage() {
               ? new Date(user.employmentDate).toISOString().split('T')[0]
               : '',
             yearlyAllowance: user.yearlyAllowance != null ? String(user.yearlyAllowance) : '30',
-            notificationCopyEmail: user.notificationCopyEmail ?? '',
+            slackNotificationsEnabled: Boolean(user.slackNotificationsEnabled),
             managerId: '',
             countryId: user.countryId || '',
           })
@@ -169,7 +169,7 @@ export default function EditUserPage() {
           role: formData.role,
           employmentDate: formData.employmentDate,
           yearlyAllowance: formData.yearlyAllowance !== '' ? parseFloat(formData.yearlyAllowance) : null,
-          notificationCopyEmail: formData.notificationCopyEmail.trim() || null,
+          slackNotificationsEnabled: Boolean(formData.slackNotificationsEnabled),
           managerId: formData.managerId && formData.managerId !== 'none' ? formData.managerId : null,
           countryId: formData.countryId && formData.countryId !== 'none' ? formData.countryId : null,
         }),
@@ -341,18 +341,19 @@ export default function EditUserPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notificationCopyEmail">Notification copy email (e.g. Slack channel)</Label>
-              <Input
-                id="notificationCopyEmail"
-                type="email"
-                placeholder="e.g. channel-abc@chat.slack.com"
-                value={formData.notificationCopyEmail}
-                onChange={(e) =>
-                  setFormData({ ...formData, notificationCopyEmail: e.target.value })
-                }
-              />
+              <Label>Slack notifications</Label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(formData.slackNotificationsEnabled)}
+                  onChange={(e) =>
+                    setFormData({ ...formData, slackNotificationsEnabled: e.target.checked })
+                  }
+                />
+                <span className="text-sm">Send this user's notifications to Slack channel</span>
+              </label>
               <p className="text-sm text-gray-500">
-                Optional. Copies of vacation-related notifications are sent here (so they appear in Slack or avoid inbox filters).
+                Uses the global `SLACK_WEBHOOK_URL` configured in Vercel.
               </p>
             </div>
 

@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger'
 import {
   sendManagerNewVacationRequestEmail,
 } from '@/lib/email'
+import { postToSlackChannel } from '@/lib/slack'
 
 // GET /api/vacations - List vacations
 export async function GET(request: NextRequest) {
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
         where: { employeeId: user.id },
         include: {
           User_ManagerEmployee_managerIdToUser: {
-            select: { id: true, name: true, email: true, notificationCopyEmail: true },
+            select: { id: true, name: true, email: true, slackNotificationsEnabled: true },
           },
         },
       })
@@ -185,17 +186,26 @@ export async function POST(request: NextRequest) {
         managerRelations
           .map((rel) => rel.User_ManagerEmployee_managerIdToUser)
           .filter((m) => m && m.email)
-          .map((manager) =>
-            sendManagerNewVacationRequestEmail({
+          .map(async (manager) => {
+            await sendManagerNewVacationRequestEmail({
               managerEmail: manager.email,
               managerName: manager.name,
               employeeName: vacation.User.name,
               startDate: startDate,
               endDate: endDate,
               comment,
-              notificationCopyEmail: manager.notificationCopyEmail ?? undefined,
             })
-          )
+
+            if (manager.slackNotificationsEnabled) {
+              const lines = [
+                `New vacation request from *${vacation.User.name}*`,
+                `Dates: ${startDate} → ${endDate}`,
+                comment ? `Comment: ${comment}` : null,
+                `Review: ${process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/manager`,
+              ].filter(Boolean)
+              await postToSlackChannel(lines.join('\n'))
+            }
+          })
       )
     } catch (notifyError) {
       logger.error('Failed to send manager notification for new vacation request', {

@@ -43,8 +43,16 @@ export async function PATCH(
       )
     }
 
-    const { email, name, role, employmentDate, yearlyAllowance, notificationCopyEmail, managerId, countryId } =
-      validationResult.data
+    const {
+      email,
+      name,
+      role,
+      employmentDate,
+      yearlyAllowance,
+      slackNotificationsEnabled,
+      managerId,
+      countryId,
+    } = validationResult.data
 
     const updateData: Prisma.UserUpdateInput = {}
     if (email !== undefined) {
@@ -84,12 +92,14 @@ export async function PATCH(
     if (role !== undefined) updateData.role = role
     if (employmentDate !== undefined) updateData.employmentDate = employmentDate
     if (yearlyAllowance !== undefined) updateData.yearlyAllowance = yearlyAllowance
+    if (slackNotificationsEnabled !== undefined) {
+      updateData.slackNotificationsEnabled = Boolean(slackNotificationsEnabled)
+    }
     if (countryId !== undefined) {
       updateData.Country = countryId
         ? { connect: { id: countryId } }
         : { disconnect: true }
     }
-    if (notificationCopyEmail !== undefined) updateData.notificationCopyEmail = notificationCopyEmail
 
     // Use transaction for atomic updates
     const updated = await prisma.$transaction(async (tx) => {

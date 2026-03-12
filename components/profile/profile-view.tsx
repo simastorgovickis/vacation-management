@@ -15,7 +15,7 @@ interface ProfileViewProps {
     email: string
     role: string
     employmentDate: Date | null
-    notificationCopyEmail: string | null
+    slackNotificationsEnabled: boolean
     country: {
       name: string
       code: string
@@ -36,9 +36,9 @@ export function ProfileView({ user, availableDays, manager }: ProfileViewProps) 
     newPassword: '',
     confirmPassword: '',
   })
-  const [notificationCopyEmail, setNotificationCopyEmail] = useState(user.notificationCopyEmail ?? '')
-  const [notificationEmailSaving, setNotificationEmailSaving] = useState(false)
-  const [notificationEmailMessage, setNotificationEmailMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+  const [slackEnabled, setSlackEnabled] = useState(Boolean(user.slackNotificationsEnabled))
+  const [slackSaving, setSlackSaving] = useState(false)
+  const [slackMessage, setSlackMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -152,57 +152,55 @@ export function ProfileView({ user, availableDays, manager }: ProfileViewProps) 
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Slack channel / notification copy email</CardTitle>
+          <CardTitle>Slack notifications</CardTitle>
           <CardDescription>
-            Optional. If set, a copy of vacation-related notifications (new request, cancellation, approval, etc.) will be sent to this address. Use your Slack channel email so messages appear in the channel and avoid inbox filters.
+            Optional. If enabled, vacation-related notifications for your user will also be posted to the configured Slack channel webhook.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {notificationEmailMessage && (
-            <Alert variant={notificationEmailMessage.type === 'error' ? 'destructive' : 'default'} className={notificationEmailMessage.type === 'success' ? 'border-green-500' : ''}>
-              <AlertDescription>{notificationEmailMessage.text}</AlertDescription>
+          {slackMessage && (
+            <Alert variant={slackMessage.type === 'error' ? 'destructive' : 'default'} className={slackMessage.type === 'success' ? 'border-green-500' : ''}>
+              <AlertDescription>{slackMessage.text}</AlertDescription>
             </Alert>
           )}
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex-1 min-w-[200px] space-y-2">
-              <Label htmlFor="notificationCopyEmail">Notification copy email</Label>
-              <Input
-                id="notificationCopyEmail"
-                type="email"
-                placeholder="e.g. channel-abc@chat.slack.com"
-                value={notificationCopyEmail}
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={slackEnabled}
                 onChange={(e) => {
-                  setNotificationCopyEmail(e.target.value)
-                  setNotificationEmailMessage(null)
+                  setSlackEnabled(e.target.checked)
+                  setSlackMessage(null)
                 }}
               />
-            </div>
+              <span className="text-sm">Send notifications to Slack channel</span>
+            </label>
             <Button
               type="button"
-              disabled={notificationEmailSaving}
+              disabled={slackSaving}
               onClick={async () => {
-                setNotificationEmailMessage(null)
-                setNotificationEmailSaving(true)
+                setSlackMessage(null)
+                setSlackSaving(true)
                 try {
                   const res = await fetch('/api/users/me', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ notificationCopyEmail: notificationCopyEmail.trim() || '' }),
+                    body: JSON.stringify({ slackNotificationsEnabled: slackEnabled }),
                   })
                   const data = await res.json()
                   if (!res.ok) {
-                    setNotificationEmailMessage({ type: 'error', text: data.error || 'Failed to save' })
+                    setSlackMessage({ type: 'error', text: data.error || 'Failed to save' })
                     return
                   }
-                  setNotificationEmailMessage({ type: 'success', text: 'Saved. Notification copies will be sent to this address when applicable.' })
+                  setSlackMessage({ type: 'success', text: 'Saved. Slack notifications will be posted when applicable.' })
                 } catch {
-                  setNotificationEmailMessage({ type: 'error', text: 'Request failed' })
+                  setSlackMessage({ type: 'error', text: 'Request failed' })
                 } finally {
-                  setNotificationEmailSaving(false)
+                  setSlackSaving(false)
                 }
               }}
             >
-              {notificationEmailSaving ? 'Saving...' : 'Save'}
+              {slackSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </CardContent>

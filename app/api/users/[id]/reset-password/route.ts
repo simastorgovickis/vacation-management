@@ -90,7 +90,6 @@ export async function POST(
         name: user.name,
         username: user.email,
         temporaryPassword: newPassword,
-        notificationCopyEmail: user.notificationCopyEmail ?? undefined,
       })
     } catch (emailError) {
       logger.error('Failed to send temporary password email', {
