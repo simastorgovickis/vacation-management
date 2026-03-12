@@ -1,5 +1,12 @@
 import { prisma } from './prisma'
-import { differenceInDays, addDays, startOfMonth, endOfMonth, format } from 'date-fns'
+import {
+  differenceInDays,
+  addDays,
+  startOfMonth,
+  endOfMonth,
+  format,
+  isWeekend,
+} from 'date-fns'
 
 const MONTHLY_ACCRUAL_RATE = 30 / 12 // 2.5 days per month (kept for legacy/monthly flows)
 const DEFAULT_YEARLY_ALLOWANCE = 30
@@ -10,6 +17,61 @@ const DEFAULT_YEARLY_ALLOWANCE = 30
 export function calculateVacationDays(startDate: Date, endDate: Date): number {
   // Add 1 because both start and end dates are included
   return differenceInDays(endDate, startDate) + 1
+}
+
+function toLocalYYYYMMDD(d: Date) {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Calculate vacation days to be used between two dates (inclusive),
+ * excluding weekends and the user's assigned public holidays (based on their country).
+ *
+ * If the user has no country assigned, this falls back to counting weekdays only.
+ */
+export async function calculateVacationDaysForUser(
+  userId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<number> {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  start.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
+
+  if (end < start) return 0
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { countryId: true },
+  })
+
+  const holidaySet = new Set<string>()
+  if (user?.countryId) {
+    const holidays = await prisma.publicHoliday.findMany({
+      where: {
+        countryId: user.countryId,
+        date: { gte: start, lte: end },
+      },
+      select: { date: true },
+    })
+    for (const h of holidays) {
+      holidaySet.add(toLocalYYYYMMDD(new Date(h.date)))
+    }
+  }
+
+  let days = 0
+  for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+    if (isWeekend(d)) continue
+    const key = toLocalYYYYMMDD(d)
+    if (holidaySet.has(key)) continue
+    days += 1
+  }
+
+  return days
 }
 
 /**

@@ -17,26 +17,41 @@ export default function RequestVacationPage() {
   const [loading, setLoading] = useState(false)
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
 
-  const calculateDays = () => {
-    if (startDate && endDate) {
-      const start = new Date(startDate + 'T00:00:00')
-      const end = new Date(endDate + 'T00:00:00')
-      if (start <= end && !isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        // Calculate days (inclusive of both start and end)
-        const diffTime = Math.abs(end.getTime() - start.getTime())
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-        setCalculatedDays(diffDays)
-      } else {
-        setCalculatedDays(null)
-      }
-    } else {
-      setCalculatedDays(null)
-    }
-  }
-
   // Recalculate when dates change
   useEffect(() => {
-    calculateDays()
+    let cancelled = false
+    const run = async () => {
+      if (!startDate || !endDate) {
+        setCalculatedDays(null)
+        return
+      }
+      const start = new Date(startDate + 'T00:00:00')
+      const end = new Date(endDate + 'T00:00:00')
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+        setCalculatedDays(null)
+        return
+      }
+      try {
+        const res = await fetch('/api/vacations/calculate-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startDate, endDate }),
+        })
+        const data = await res.json()
+        if (cancelled) return
+        if (!res.ok) {
+          setCalculatedDays(null)
+          return
+        }
+        setCalculatedDays(typeof data.days === 'number' ? data.days : null)
+      } catch {
+        if (!cancelled) setCalculatedDays(null)
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
   }, [startDate, endDate])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,7 +106,6 @@ export default function RequestVacationPage() {
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value)
-                    calculateDays()
                   }}
                   required
                 />
@@ -104,7 +118,6 @@ export default function RequestVacationPage() {
                   value={endDate}
                   onChange={(e) => {
                     setEndDate(e.target.value)
-                    calculateDays()
                   }}
                   required
                 />

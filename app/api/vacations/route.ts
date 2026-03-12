@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, canAccessEmployeeData } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { calculateVacationDays } from '@/lib/vacation'
+import { calculateVacationDaysForUser } from '@/lib/vacation'
 import { VacationStatus, Prisma } from '@/lib/generated/prisma/client'
 import { createVacationSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     // Check if user has enough vacation days
     const { getAvailableVacationDays } = await import('@/lib/vacation')
     const availableDays = await getAvailableVacationDays(user.id)
-    const days = calculateVacationDays(start, end)
+    const days = await calculateVacationDaysForUser(user.id, start, end)
 
     if (availableDays < days) {
       return NextResponse.json(
