@@ -25,6 +25,22 @@ export function VacationCalendar({ userId, vacations: initialVacations }: Vacati
   const [vacations, setVacations] = useState(initialVacations || [])
   const [holidays, setHolidays] = useState<PublicHoliday[]>([])
 
+  const getVacationDurationLabel = (vacation: VacationRequest & { dayPortion?: string | null }) => {
+    if (vacation.dayPortion === 'FIRST_HALF') return '1st half'
+    if (vacation.dayPortion === 'SECOND_HALF') return '2nd half'
+    return `${vacation.days} day${vacation.days !== 1 ? 's' : ''}`
+  }
+
+  const getHalfDayIndicatorHtml = (dayPortion?: string | null) => {
+    if (dayPortion === 'FIRST_HALF') {
+      return `<span style="display:inline-block;width:10px;height:10px;border:1px solid rgba(255,255,255,0.95);border-radius:2px;background:linear-gradient(to right, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.2) 50%);flex-shrink:0;" title="First half"></span>`
+    }
+    if (dayPortion === 'SECOND_HALF') {
+      return `<span style="display:inline-block;width:10px;height:10px;border:1px solid rgba(255,255,255,0.95);border-radius:2px;background:linear-gradient(to right, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.95) 50%);flex-shrink:0;" title="Second half"></span>`
+    }
+    return ''
+  }
+
   useEffect(() => {
     if (!initialVacations) {
       fetch(`/api/vacations?userId=${userId}`)
@@ -52,7 +68,7 @@ export function VacationCalendar({ userId, vacations: initialVacations }: Vacati
   }, [userId, initialVacations])
 
   const vacationEvents = vacations.map((vacation) => {
-    const days = Math.round(vacation.days)
+    const durationLabel = getVacationDurationLabel(vacation as VacationRequest & { dayPortion?: string | null })
     const statusText =
       vacation.status === 'APPROVED'
         ? ''
@@ -60,7 +76,7 @@ export function VacationCalendar({ userId, vacations: initialVacations }: Vacati
           ? ' (Cancellation Requested)'
           : ` (${vacation.status})`
     // Use a simple title without "day/days" to avoid FullCalendar's auto-formatting
-    const title = `${days}${statusText}`
+    const title = `${durationLabel}${statusText}`
 
     // Use local calendar date so the displayed day matches the user's timezone (no UTC shift)
     const toLocalYYYYMMDD = (d: Date) => {
@@ -93,7 +109,8 @@ export function VacationCalendar({ userId, vacations: initialVacations }: Vacati
               ? '#ef4444'
               : '#6b7280',
       extendedProps: {
-        days,
+        durationLabel,
+        dayPortion: vacation.dayPortion,
         status: vacation.status,
         type: 'vacation',
       },
@@ -165,11 +182,13 @@ export function VacationCalendar({ userId, vacations: initialVacations }: Vacati
             html: `<div style="padding: 2px 4px; font-weight: 700; color: #ffffff; font-size: 0.75rem; text-align: center;">${displayText}</div>`,
           }
         }
-        const days = arg.event.extendedProps.days
+        const durationLabel = arg.event.extendedProps.durationLabel
+        const dayPortion = arg.event.extendedProps.dayPortion
+        const halfDayIndicator = getHalfDayIndicatorHtml(dayPortion)
         const status = arg.event.extendedProps.status
         const statusText = status === 'APPROVED' ? '' : status === 'CANCELLATION_REQUESTED' ? ' (Cancellation Requested)' : ` (${status})`
         return {
-          html: `<div style="padding: 2px 4px; font-weight: 500;">${days} day${days !== 1 ? 's' : ''}${statusText}</div>`,
+          html: `<div style="padding: 2px 4px; font-weight: 500; display:flex; align-items:center; gap:4px;">${halfDayIndicator}<span>${durationLabel}${statusText}</span></div>`,
         }
       }}
     />

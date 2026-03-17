@@ -17,6 +17,12 @@ function getBaseUrl() {
   return raw.replace(/\/+$/, '')
 }
 
+function formatDayPortionLabel(dayPortion: 'FULL' | 'FIRST_HALF' | 'SECOND_HALF' | null | undefined) {
+  if (dayPortion === 'FIRST_HALF') return 'First half'
+  if (dayPortion === 'SECOND_HALF') return 'Second half'
+  return null
+}
+
 // GET /api/vacations/[id] - Get single vacation
 export async function GET(
   request: NextRequest,
@@ -276,11 +282,15 @@ export async function PATCH(
                 : 'cancelled'
           const start = updated.startDate.toISOString().split('T')[0]
           const end = updated.endDate.toISOString().split('T')[0]
+          const dayPortionLabel = formatDayPortionLabel(updated.dayPortion)
           const text = [
             `Your vacation request for *${start} → ${end}* was *${label}*`,
+            dayPortionLabel ? `Day portion: ${dayPortionLabel}` : null,
             `Employee: ${updated.User.name}`,
             `My vacations: ${baseUrl}/dashboard`,
-          ].join('\n')
+          ]
+            .filter(Boolean)
+            .join('\n')
           await postToSlackChannel(text)
         }
       }
@@ -313,11 +323,15 @@ export async function PATCH(
 
               if (manager.slackNotificationsEnabled) {
                 const baseUrl = getBaseUrl()
+                const dayPortionLabel = formatDayPortionLabel(updated.dayPortion)
                 const text = [
                   `Cancellation requested: *${updated.User.name}*`,
                   `Dates: ${start} → ${end}`,
+                  dayPortionLabel ? `Day portion: ${dayPortionLabel}` : null,
                   `Review: ${baseUrl}/manager`,
-                ].join('\n')
+                ]
+                  .filter(Boolean)
+                  .join('\n')
                 await postToSlackChannel(text)
               }
             })

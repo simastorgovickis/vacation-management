@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, canAccessEmployeeData } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { calculateVacationDaysForUser } from '@/lib/vacation'
+import { calculateRequestedDaysFromPortion, calculateVacationDaysForUser } from '@/lib/vacation'
 import { VacationStatus, Prisma } from '@/lib/generated/prisma/client'
 import { createVacationSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
@@ -15,6 +15,12 @@ import { postToSlackChannel } from '@/lib/slack'
 function getBaseUrl() {
   const raw = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
   return raw.replace(/\/+$/, '')
+}
+
+function formatDayPortionLabel(dayPortion: 'FULL' | 'FIRST_HALF' | 'SECOND_HALF' | null | undefined) {
+  if (dayPortion === 'FIRST_HALF') return 'First half'
+  if (dayPortion === 'SECOND_HALF') return 'Second half'
+  return null
 }
 
 // GET /api/vacations - List vacations
@@ -111,9 +117,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { startDate, endDate, comment } = validationResult.data
+    const { startDate, endDate, comment, dayPortion } = validationResult.data
     const start = new Date(startDate)
     const end = new Date(endDate)
+    const isSingleDay =
+      start.getFullYear() === end.getFullYear() &&
+      start.getMonth() === end.getMonth() &&
+      start.getDate() === end.getDate()
+    const normalizedDayPortion = dayPortion ?? 'FULL'
+    if (!isSingleDay && normalizedDayPortion !== 'FULL') {
+      return NextResponse.json(
+        { error: 'Half-day is available only for single-day requests' },
+        { status: 400 }
+      )
+    }
+
 
     // Normalize dates to start of day for comparison
     start.setHours(0, 0, 0, 0)
@@ -145,7 +163,8 @@ export async function POST(request: NextRequest) {
     // Check if user has enough vacation days
     const { getAvailableVacationDays } = await import('@/lib/vacation')
     const availableDays = await getAvailableVacationDays(user.id)
-    const days = await calculateVacationDaysForUser(user.id, start, end)
+    const baseDays = await calculateVacationDaysForUser(user.id, start, end)
+    const days = calculateRequestedDaysFromPortion(baseDays, start, end, normalizedDayPortion)
 
     if (availableDays < days) {
       return NextResponse.json(
@@ -162,6 +181,7 @@ export async function POST(request: NextRequest) {
         startDate: start,
         endDate: end,
         days,
+        dayPortion: normalizedDayPortion,
         comment: comment || null,
         status: 'PENDING',
       },
@@ -203,9 +223,11 @@ export async function POST(request: NextRequest) {
 
             if (manager.slackNotificationsEnabled) {
               const baseUrl = getBaseUrl()
+              const dayPortionLabel = formatDayPortionLabel(vacation.dayPortion)
               const lines = [
                 `New vacation request from *${vacation.User.name}*`,
                 `Dates: ${startDate} → ${endDate}`,
+                dayPortionLabel ? `Day portion: ${dayPortionLabel}` : null,
                 comment ? `Comment: ${comment}` : null,
                 `Review: ${baseUrl}/manager`,
               ].filter(Boolean)

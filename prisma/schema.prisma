@@ -142,6 +142,7 @@ model VacationRequest {
   startDate       DateTime
   endDate         DateTime
   days            Float
+  dayPortion      DayPortion?
   status          VacationStatus @default(PENDING)
   comment         String?
   rejectionReason String?
@@ -177,4 +178,10 @@ enum VacationStatus {
   REJECTED
   CANCELLED
   CANCELLATION_REQUESTED
+}
+
+enum DayPortion {
+  FULL
+  FIRST_HALF
+  SECOND_HALF
 }

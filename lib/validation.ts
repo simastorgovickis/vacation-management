@@ -74,6 +74,7 @@ export const updateUserSchema = z.object({
 export const createVacationSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  dayPortion: z.enum(['FULL', 'FIRST_HALF', 'SECOND_HALF']).optional().nullable(),
   comment: z.string().max(1000, 'Comment is too long').optional().nullable(),
 }).refine(
   (data) => {

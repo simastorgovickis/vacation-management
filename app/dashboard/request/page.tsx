@@ -8,15 +8,21 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+type DayPortion = 'FULL' | 'FIRST_HALF' | 'SECOND_HALF'
 export default function RequestVacationPage() {
   const router = useRouter()
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [dayPortion, setDayPortion] = useState<DayPortion>('FULL')
   const [comment, setComment] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
   const [excluded, setExcluded] = useState<{ weekends: number; holidays: number } | null>(null)
+  const isSingleDay = Boolean(startDate && endDate && startDate === endDate)
+  const effectiveDayPortion: DayPortion = isSingleDay ? dayPortion : 'FULL'
 
   // Recalculate when dates change
   useEffect(() => {
@@ -38,7 +44,7 @@ export default function RequestVacationPage() {
         const res = await fetch('/api/vacations/calculate-days', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ startDate, endDate }),
+          body: JSON.stringify({ startDate, endDate, dayPortion: effectiveDayPortion }),
         })
         const data = await res.json()
         if (cancelled) return
@@ -63,7 +69,7 @@ export default function RequestVacationPage() {
     return () => {
       cancelled = true
     }
-  }, [startDate, endDate])
+  }, [startDate, endDate, effectiveDayPortion])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,7 +80,7 @@ export default function RequestVacationPage() {
       const response = await fetch('/api/vacations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, comment }),
+        body: JSON.stringify({ startDate, endDate, dayPortion: effectiveDayPortion, comment }),
       })
 
       const data = await response.json()
@@ -133,6 +139,29 @@ export default function RequestVacationPage() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dayPortion">Day Portion</Label>
+              <Select
+                value={effectiveDayPortion}
+                onValueChange={(value) => setDayPortion(value as DayPortion)}
+                disabled={!isSingleDay}
+              >
+                <SelectTrigger id="dayPortion" className="w-full">
+                  <SelectValue placeholder="Select day portion" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FULL">Full day</SelectItem>
+                  <SelectItem value="FIRST_HALF">First half</SelectItem>
+                  <SelectItem value="SECOND_HALF">Second half</SelectItem>
+                </SelectContent>
+              </Select>
+              {!isSingleDay && (
+                <p className="text-sm text-gray-500">
+                  Half-day is available only for single-day requests.
+                </p>
+              )}
             </div>
 
             {calculatedDays !== null && (

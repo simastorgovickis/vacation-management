@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { calculateVacationDaysBreakdownForUser } from '@/lib/vacation'
+import { calculateRequestedDaysFromPortion, calculateVacationDaysBreakdownForUser } from '@/lib/vacation'
 import { z } from 'zod'
 
 const schema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dayPortion: z.enum(['FULL', 'FIRST_HALF', 'SECOND_HALF']).optional().nullable(),
 })
 
 // POST /api/vacations/calculate-days - Calculate used vacation days excluding weekends/holidays for current user
@@ -25,7 +26,13 @@ export async function POST(request: NextRequest) {
     }
 
     const breakdown = await calculateVacationDaysBreakdownForUser(user.id, start, end)
-    return NextResponse.json(breakdown)
+    const usedDays = calculateRequestedDaysFromPortion(
+      breakdown.usedDays,
+      start,
+      end,
+      parsed.data.dayPortion ?? 'FULL'
+    )
+    return NextResponse.json({ ...breakdown, usedDays })
   } catch (error: unknown) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

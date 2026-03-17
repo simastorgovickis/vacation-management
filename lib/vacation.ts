@@ -10,6 +10,7 @@ import {
 
 const MONTHLY_ACCRUAL_RATE = 30 / 12 // 2.5 days per month (kept for legacy/monthly flows)
 const DEFAULT_YEARLY_ALLOWANCE = 30
+export type VacationDayPortion = 'FULL' | 'FIRST_HALF' | 'SECOND_HALF'
 
 /**
  * Calculate vacation days between two dates (inclusive)
@@ -97,6 +98,24 @@ export async function calculateVacationDaysBreakdownForUser(
 
   const totalCalendarDays = differenceInDays(end, start) + 1
   return { totalCalendarDays, usedDays, excludedWeekendDays, excludedHolidayDays }
+}
+
+export function calculateRequestedDaysFromPortion(
+  baseUsedDays: number,
+  startDate: Date,
+  endDate: Date,
+  dayPortion?: VacationDayPortion | null
+): number {
+  const normalizedPortion = dayPortion ?? 'FULL'
+  const isSingleDay =
+    startDate.getFullYear() === endDate.getFullYear() &&
+    startDate.getMonth() === endDate.getMonth() &&
+    startDate.getDate() === endDate.getDate()
+
+  if (!isSingleDay) return baseUsedDays
+  if (normalizedPortion === 'FULL') return baseUsedDays
+  if (baseUsedDays <= 0) return 0
+  return 0.5
 }
 
 /**

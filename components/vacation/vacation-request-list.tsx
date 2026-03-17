@@ -26,6 +26,12 @@ export function VacationRequestList({
   showCancel = false,
   onStatusChange,
 }: VacationRequestListProps) {
+  const formatDayPortion = (dayPortion: string | null | undefined) => {
+    if (dayPortion === 'FIRST_HALF') return 'First half'
+    if (dayPortion === 'SECOND_HALF') return 'Second half'
+    return null
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPROVED':
@@ -84,7 +90,12 @@ export function VacationRequestList({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {vacations.map((vacation) => (
+        {vacations.map((vacation) => {
+          const dayPortionLabel = formatDayPortion(vacation.dayPortion)
+          const daysDisplay = dayPortionLabel
+            ? `${vacation.days} (${dayPortionLabel})`
+            : vacation.days
+          return (
           <TableRow key={vacation.id}>
             {vacation.User && (
               <TableCell>
@@ -96,7 +107,7 @@ export function VacationRequestList({
             )}
             <TableCell>{format(new Date(vacation.startDate), 'MMM d, yyyy')}</TableCell>
             <TableCell>{format(new Date(vacation.endDate), 'MMM d, yyyy')}</TableCell>
-            <TableCell>{vacation.days}</TableCell>
+            <TableCell>{daysDisplay}</TableCell>
             <TableCell>
               {vacation.comment ? (
                 <span className="text-sm text-gray-700">{vacation.comment}</span>
@@ -197,7 +208,8 @@ export function VacationRequestList({
               </TableCell>
             )}
           </TableRow>
-        ))}
+          )
+        })}
       </TableBody>
     </Table>
   )
