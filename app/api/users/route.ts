@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const where: Prisma.UserWhereInput = {}
 
     if (user.role === 'MANAGER') {
-      // Manager can only see their team
+      // Manager can only see their active team members
       const teamMemberIds = await prisma.managerEmployee.findMany({
         where: { managerId: user.id },
         select: { employeeId: true },
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       const ids = teamMemberIds.map((t) => t.employeeId)
       ids.push(user.id) // Include themselves
       where.id = { in: ids }
+      where.isActive = true
     }
 
     if (role) {

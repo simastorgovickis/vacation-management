@@ -12,7 +12,10 @@ export default async function ManagerDashboard() {
 
   // Get team members
   const teamRelations = await prisma.managerEmployee.findMany({
-    where: { managerId: manager.id },
+    where: {
+      managerId: manager.id,
+      User_ManagerEmployee_employeeIdToUser: { isActive: true },
+    },
     include: {
       User_ManagerEmployee_employeeIdToUser: true,
     },
