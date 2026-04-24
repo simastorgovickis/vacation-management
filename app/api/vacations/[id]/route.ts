@@ -158,18 +158,13 @@ export async function PATCH(
       }
     }
 
-    // Employees can request cancellation of their own approved vacations only if vacation is in the future
+    // Employees can request cancellation of their own approved vacations
     if (status === 'CANCELLATION_REQUESTED') {
       if (vacation.userId !== user.id) {
         throw new AuthorizationError()
       }
       if (vacation.status !== 'APPROVED') {
         throw new ValidationError('Only approved vacations can be requested for cancellation')
-      }
-      const startOfToday = new Date()
-      startOfToday.setHours(0, 0, 0, 0)
-      if (new Date(vacation.startDate) < startOfToday) {
-        throw new ValidationError('Cannot request cancellation for a vacation that has already started or is in the past')
       }
     }
 

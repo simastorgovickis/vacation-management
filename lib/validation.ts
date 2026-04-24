@@ -32,14 +32,7 @@ export const employmentDateSchema = dateSchema.refine(
 )
 
 export const vacationDateSchema = z.object({
-  startDate: dateSchema.refine(
-    (date) => {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      return date >= today
-    },
-    { message: 'Cannot request vacation in the past' }
-  ),
+  startDate: dateSchema,
   endDate: dateSchema,
 }).refine(
   (data) => data.startDate <= data.endDate,
@@ -85,17 +78,6 @@ export const createVacationSchema = z.object({
   {
     message: 'Start date must be before end date',
     path: ['endDate'],
-  }
-).refine(
-  (data) => {
-    const start = new Date(data.startDate + 'T00:00:00')
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return start >= today
-  },
-  {
-    message: 'Cannot request vacation in the past',
-    path: ['startDate'],
   }
 )
 
