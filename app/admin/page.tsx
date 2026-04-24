@@ -41,7 +41,10 @@ export default async function AdminDashboard() {
 
   // Check if admin is also a manager (has employees assigned)
   const teamRelations = await prisma.managerEmployee.findMany({
-    where: { managerId: admin.id },
+    where: {
+      managerId: admin.id,
+      User_ManagerEmployee_employeeIdToUser: { isActive: true },
+    },
     include: {
       User_ManagerEmployee_employeeIdToUser: {
         select: {
