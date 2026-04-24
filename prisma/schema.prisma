@@ -88,6 +88,7 @@ model User {
   yearlyAllowance                                  Float?               @default(30)
   /** Optional: post notifications to the configured Slack channel webhook */
   slackNotificationsEnabled                        Boolean              @default(false)
+  isActive                                         Boolean              @default(true)
   createdAt                                        DateTime             @default(now())
   updatedAt                                        DateTime             @updatedAt
   countryId                                        String?
@@ -164,6 +165,8 @@ enum AuditAction {
   ROLE_CHANGED
   MANAGER_ASSIGNED
   HOLIDAYS_IMPORTED
+  USER_DEACTIVATED
+  USER_REACTIVATED
 }
 
 enum Role {

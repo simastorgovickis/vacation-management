@@ -28,6 +28,7 @@ interface User {
   name: string
   email: string
   role: string
+  isActive: boolean
   employmentDate: string | null
   _count: {
     managedEmployees: number
@@ -38,6 +39,7 @@ export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [resetting, setResetting] = useState<string | null>(null)
+  const [togglingActive, setTogglingActive] = useState<string | null>(null)
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const [resetPassword, setResetPassword] = useState<{ email: string; password: string } | null>(null)
 
@@ -81,6 +83,31 @@ export function UserManagement() {
     }
   }
 
+  const handleToggleActive = async (userId: string, currentlyActive: boolean) => {
+    const action = currentlyActive ? 'deactivate' : 'reactivate'
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return
+
+    setTogglingActive(userId)
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentlyActive }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert(data.error || `Failed to ${action} user`)
+      } else {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isActive: !currentlyActive } : u))
+        )
+      }
+    } catch {
+      alert('An error occurred. Please try again.')
+    }
+    setTogglingActive(null)
+  }
+
   const copyPasswordToClipboard = () => {
     if (resetPassword) {
       navigator.clipboard.writeText(resetPassword.password)
@@ -121,8 +148,15 @@ export function UserManagement() {
           </TableHeader>
           <TableBody>
             {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
+              <TableRow key={user.id} className={user.isActive ? '' : 'opacity-50'}>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {user.name}
+                    {!user.isActive && (
+                      <Badge className="bg-gray-100 text-gray-500 text-xs">Deactivated</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Badge className={getRoleColor(user.role)}>{user.role}</Badge>
@@ -145,6 +179,18 @@ export function UserManagement() {
                       disabled={resetting === user.id}
                     >
                       {resetting === user.id ? 'Resetting...' : 'Reset Password'}
+                    </Button>
+                    <Button
+                      variant={user.isActive ? 'destructive' : 'outline'}
+                      size="sm"
+                      onClick={() => handleToggleActive(user.id, user.isActive)}
+                      disabled={togglingActive === user.id}
+                    >
+                      {togglingActive === user.id
+                        ? '...'
+                        : user.isActive
+                          ? 'Deactivate'
+                          : 'Reactivate'}
                     </Button>
                   </div>
                 </TableCell>

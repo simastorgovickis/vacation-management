@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -21,6 +22,19 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 401 })
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email },
+      select: { isActive: true },
+    })
+
+    if (dbUser && !dbUser.isActive) {
+      await supabase.auth.signOut()
+      return NextResponse.json(
+        { error: 'Your account has been deactivated. Please contact your administrator.' },
+        { status: 403 }
+      )
     }
 
     return NextResponse.json({ user: data.user })

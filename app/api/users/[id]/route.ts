@@ -52,6 +52,7 @@ export async function PATCH(
       slackNotificationsEnabled,
       managerId,
       countryId,
+      isActive,
     } = validationResult.data
 
     const updateData: Prisma.UserUpdateInput = {}
@@ -99,6 +100,21 @@ export async function PATCH(
       updateData.Country = countryId
         ? { connect: { id: countryId } }
         : { disconnect: true }
+    }
+    if (isActive !== undefined) {
+      updateData.isActive = isActive
+
+      // Ban or unban in Supabase Auth so existing sessions are invalidated immediately
+      const supabase = createAdminClient()
+      const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers()
+      if (!listError) {
+        const authUser = authUsers.users.find((u) => u.email === user.email)
+        if (authUser) {
+          await supabase.auth.admin.updateUserById(authUser.id, {
+            ban_duration: isActive ? 'none' : '876000h',
+          })
+        }
+      }
     }
 
     // Use transaction for atomic updates
@@ -186,6 +202,17 @@ export async function PATCH(
               oldRole: user.role,
               newRole: role,
             },
+          },
+        })
+      }
+
+      if (isActive !== undefined && isActive !== user.isActive) {
+        await tx.auditLog.create({
+          data: {
+            userId: admin.id,
+            targetUserId: id,
+            action: isActive ? 'USER_REACTIVATED' : 'USER_DEACTIVATED',
+            details: {},
           },
         })
       }

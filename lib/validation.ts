@@ -59,6 +59,7 @@ export const updateUserSchema = z.object({
   employmentDate: employmentDateSchema.optional().nullable(),
   yearlyAllowance: z.coerce.number().min(0).max(365).optional().nullable(),
   slackNotificationsEnabled: z.coerce.boolean().optional(),
+  isActive: z.boolean().optional(),
   // IDs are Prisma string IDs (cuid), not strict UUIDs
   managerId: z.string().min(1).optional().nullable(),
   countryId: z.string().min(1).optional().nullable(),
