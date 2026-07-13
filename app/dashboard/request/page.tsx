@@ -21,6 +21,7 @@ export default function RequestVacationPage() {
   const [loading, setLoading] = useState(false)
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
   const [excluded, setExcluded] = useState<{ weekends: number; holidays: number } | null>(null)
+  const [availableAtEnd, setAvailableAtEnd] = useState<number | null>(null)
   const isSingleDay = Boolean(startDate && endDate && startDate === endDate)
   const effectiveDayPortion: DayPortion = isSingleDay ? dayPortion : 'FULL'
 
@@ -31,6 +32,7 @@ export default function RequestVacationPage() {
       if (!startDate || !endDate) {
         setCalculatedDays(null)
         setExcluded(null)
+        setAvailableAtEnd(null)
         return
       }
       const start = new Date(startDate + 'T00:00:00')
@@ -38,6 +40,7 @@ export default function RequestVacationPage() {
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
         setCalculatedDays(null)
         setExcluded(null)
+        setAvailableAtEnd(null)
         return
       }
       try {
@@ -51,6 +54,7 @@ export default function RequestVacationPage() {
         if (!res.ok) {
           setCalculatedDays(null)
           setExcluded(null)
+          setAvailableAtEnd(null)
           return
         }
         setCalculatedDays(typeof data.usedDays === 'number' ? data.usedDays : null)
@@ -58,10 +62,14 @@ export default function RequestVacationPage() {
           weekends: typeof data.excludedWeekendDays === 'number' ? data.excludedWeekendDays : 0,
           holidays: typeof data.excludedHolidayDays === 'number' ? data.excludedHolidayDays : 0,
         })
+        setAvailableAtEnd(
+          typeof data.availableAsOfEndDate === 'number' ? data.availableAsOfEndDate : null
+        )
       } catch {
         if (!cancelled) {
           setCalculatedDays(null)
           setExcluded(null)
+          setAvailableAtEnd(null)
         }
       }
     }
@@ -164,21 +172,42 @@ export default function RequestVacationPage() {
               )}
             </div>
 
-            {calculatedDays !== null && (
-              <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-                <p className="text-sm text-gray-700">
-                  This request will use <strong>{calculatedDays} days</strong> of your vacation
-                  balance.
-                </p>
-                {excluded && (excluded.weekends > 0 || excluded.holidays > 0) && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Not counted: {excluded.weekends} weekend day{excluded.weekends === 1 ? '' : 's'}
-                    {excluded.holidays > 0 ? ` and ${excluded.holidays} public holiday${excluded.holidays === 1 ? '' : 's'}` : ''}
-                    .
+            {calculatedDays !== null && (() => {
+              const hasBalance = availableAtEnd !== null
+              const sufficient = hasBalance && availableAtEnd! >= calculatedDays
+              const boxClass = hasBalance
+                ? sufficient
+                  ? 'bg-green-50 border-green-100'
+                  : 'bg-red-50 border-red-100'
+                : 'bg-red-50 border-red-100'
+              return (
+                <div className={`p-4 rounded-lg border ${boxClass}`}>
+                  <p className="text-sm text-gray-700">
+                    This request will use <strong>{calculatedDays} days</strong> of your vacation
+                    balance.
                   </p>
-                )}
-              </div>
-            )}
+                  {excluded && (excluded.weekends > 0 || excluded.holidays > 0) && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Not counted: {excluded.weekends} weekend day{excluded.weekends === 1 ? '' : 's'}
+                      {excluded.holidays > 0 ? ` and ${excluded.holidays} public holiday${excluded.holidays === 1 ? '' : 's'}` : ''}
+                      .
+                    </p>
+                  )}
+                  {hasBalance && (
+                    <p className="text-sm text-gray-700 mt-2">
+                      Projected balance by {new Date(endDate + 'T00:00:00').toLocaleDateString()}:{' '}
+                      <strong>{availableAtEnd!.toFixed(1)} days</strong> accrued
+                      {sufficient ? (
+                        <> — enough for this request (
+                          {(availableAtEnd! - calculatedDays).toFixed(1)} left over).</>
+                      ) : (
+                        <> — not enough yet ({(calculatedDays - availableAtEnd!).toFixed(1)} short).</>
+                      )}
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
 
             <div className="space-y-2">
               <Label htmlFor="comment">Comment (Optional)</Label>

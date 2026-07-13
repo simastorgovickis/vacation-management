@@ -207,29 +207,37 @@ export async function calculateAccruedDays(
 }
 
 /**
- * Get available vacation days for a user
+ * Get available vacation days for a user.
+ *
+ * By default this reports the balance as of today. Pass `targetDate` to check
+ * availability as of a future date instead (e.g. the end date of a requested
+ * leave) — this lets employees request days they will have accrued by the
+ * time the leave occurs, not just what they've accrued as of today.
  */
-export async function getAvailableVacationDays(userId: string): Promise<number> {
-  const currentYear = new Date().getFullYear()
+export async function getAvailableVacationDays(
+  userId: string,
+  targetDate: Date = new Date()
+): Promise<number> {
+  const targetYear = targetDate.getFullYear()
 
-  // Get balance for current year
-  const balance = await getOrCreateVacationBalance(userId, currentYear)
+  // Get balance for the target date's year
+  const balance = await getOrCreateVacationBalance(userId, targetYear)
 
-  // Calculate accrued days
-  const accrued = await calculateAccruedDays(userId)
+  // Calculate accrued days as of the target date
+  const accrued = await calculateAccruedDays(userId, targetDate)
 
-  // Calculate used days from approved requests (exclude cancellation requested as they're pending cancellation)
+  // Calculate used days from approved requests in that year (exclude cancellation requested as they're pending cancellation)
   const approvedRequests = await prisma.vacationRequest.findMany({
     where: {
       userId,
-      status: { 
+      status: {
         in: ['APPROVED', 'CANCELLATION_REQUESTED']
       }, // Include cancellation requested as they're still "used" until cancelled
       startDate: {
-        gte: new Date(currentYear, 0, 1),
+        gte: new Date(targetYear, 0, 1),
       },
       endDate: {
-        lte: new Date(currentYear, 11, 31),
+        lte: new Date(targetYear, 11, 31),
       },
     },
   })

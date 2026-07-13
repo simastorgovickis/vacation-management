@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { calculateRequestedDaysFromPortion, calculateVacationDaysBreakdownForUser } from '@/lib/vacation'
+import {
+  calculateRequestedDaysFromPortion,
+  calculateVacationDaysBreakdownForUser,
+  getAvailableVacationDays,
+} from '@/lib/vacation'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -32,7 +36,10 @@ export async function POST(request: NextRequest) {
       end,
       parsed.data.dayPortion ?? 'FULL'
     )
-    return NextResponse.json({ ...breakdown, usedDays })
+    // Projected balance as of the leave's end date — same check the submit endpoint
+    // uses, surfaced here so the request form can show it before the user submits.
+    const availableAsOfEndDate = await getAvailableVacationDays(user.id, end)
+    return NextResponse.json({ ...breakdown, usedDays, availableAsOfEndDate })
   } catch (error: unknown) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
