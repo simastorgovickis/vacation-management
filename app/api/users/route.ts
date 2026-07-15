@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: {
-            ManagerEmployee_ManagerEmployee_managerIdToUser: true,
+            managedEmployees: true,
           },
         },
       },

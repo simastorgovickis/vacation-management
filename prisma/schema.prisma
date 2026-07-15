@@ -93,7 +93,7 @@ model User {
   updatedAt                                        DateTime             @updatedAt
   countryId                                        String?
   ManagerEmployee_ManagerEmployee_employeeIdToUser ManagerEmployee[]    @relation("ManagerEmployee_employeeIdToUser")
-  ManagerEmployee_ManagerEmployee_managerIdToUser  ManagerEmployee[]    @relation("ManagerEmployee_managerIdToUser")
+  managedEmployees                                 ManagerEmployee[]    @relation("ManagerEmployee_managerIdToUser")
   PasswordResetToken                               PasswordResetToken[]
   Country                                          Country?             @relation(fields: [countryId], references: [id])
   VacationAccrualLog                               VacationAccrualLog[]
