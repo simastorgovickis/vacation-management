@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireRole, canAccessEmployeeData } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getAvailableVacationDays } from '@/lib/vacation'
+import { getAvailableVacationDays, getUsedDaysInYear } from '@/lib/vacation'
 import { adjustBalanceSchema } from '@/lib/validation'
 import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, AuthorizationError, RateLimitError } from '@/lib/errors'
@@ -40,20 +40,7 @@ export async function GET(
       },
     })
 
-    const approvedRequests = await prisma.vacationRequest.findMany({
-      where: {
-        userId,
-        status: { in: ['APPROVED', 'CANCELLATION_REQUESTED'] }, // Include cancellation requested as they're still "used" until cancelled
-        startDate: {
-          gte: new Date(currentYear, 0, 1),
-        },
-        endDate: {
-          lte: new Date(currentYear, 11, 31),
-        },
-      },
-    })
-
-    const used = approvedRequests.reduce((sum, req) => sum + req.days, 0)
+    const used = await getUsedDaysInYear(userId, currentYear)
 
     return NextResponse.json({
       available,

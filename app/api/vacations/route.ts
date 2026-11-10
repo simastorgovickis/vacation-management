@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { format } from 'date-fns'
 import { requireAuth, canAccessEmployeeData } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateRequestedDaysFromPortion, calculateVacationDaysForUser } from '@/lib/vacation'
@@ -161,20 +160,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user has enough vacation days, projected as of the leave's end date
-    // (accrual keeps running between now and the leave, so a request for a future
-    // period is checked against what will have accrued by then, not what's accrued today)
-    const { getAvailableVacationDays } = await import('@/lib/vacation')
-    const availableDays = await getAvailableVacationDays(user.id, end)
+    // Check if user has enough vacation days, year by year, projected to the leave's
+    // last day within each year (accrual keeps running until then, and a request
+    // spanning New Year draws each year's days from that year's balance)
+    const { checkRequestBalance, describeBalanceShortfall } = await import('@/lib/vacation')
     const baseDays = await calculateVacationDaysForUser(user.id, start, end)
     const days = calculateRequestedDaysFromPortion(baseDays, start, end, normalizedDayPortion)
+    const balanceCheck = await checkRequestBalance(user.id, start, end, normalizedDayPortion)
 
-    if (availableDays < days) {
-      const short = (days - availableDays).toFixed(1)
+    if (!balanceCheck.sufficient) {
       return NextResponse.json(
-        {
-          error: `You won't have enough vacation days yet. By ${format(end, 'MMM d, yyyy')} you'll have accrued ${availableDays.toFixed(1)} day${availableDays.toFixed(1) === '1.0' ? '' : 's'}, but this request needs ${days} — ${short} short.`
-        },
+        { error: describeBalanceShortfall(balanceCheck, 'you') },
         { status: 400 }
       )
     }

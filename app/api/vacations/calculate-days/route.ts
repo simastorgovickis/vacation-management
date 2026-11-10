@@ -3,9 +3,10 @@ import { requireAuth } from '@/lib/auth'
 import {
   calculateRequestedDaysFromPortion,
   calculateVacationDaysBreakdownForUser,
-  getAvailableVacationDays,
+  checkRequestBalance,
 } from '@/lib/vacation'
 import { z } from 'zod'
+import { format } from 'date-fns'
 
 const schema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -36,10 +37,20 @@ export async function POST(request: NextRequest) {
       end,
       parsed.data.dayPortion ?? 'FULL'
     )
-    // Projected balance as of the leave's end date — same check the submit endpoint
-    // uses, surfaced here so the request form can show it before the user submits.
-    const availableAsOfEndDate = await getAvailableVacationDays(user.id, end)
-    return NextResponse.json({ ...breakdown, usedDays, availableAsOfEndDate })
+    // Per-year projected balance — same check the submit endpoint uses, surfaced
+    // here so the request form can show it before the user submits.
+    const balanceCheck = await checkRequestBalance(user.id, start, end, parsed.data.dayPortion ?? 'FULL')
+    return NextResponse.json({
+      ...breakdown,
+      usedDays,
+      balanceSufficient: balanceCheck.sufficient,
+      balanceByYear: balanceCheck.years.map((y) => ({
+        year: y.year,
+        asOf: format(y.asOf, 'yyyy-MM-dd'),
+        requested: y.requested,
+        available: y.available,
+      })),
+    })
   } catch (error: unknown) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

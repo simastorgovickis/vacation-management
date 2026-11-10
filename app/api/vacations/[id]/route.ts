@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { format } from 'date-fns'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Role, VacationStatus, Prisma } from '@/lib/generated/prisma/client'
@@ -147,15 +146,17 @@ export async function PATCH(
         throw new ValidationError('Rejection reason is required')
       }
 
-      // Validate balance before approval, projected as of the leave's end date
+      // Validate balance before approval, year by year, projected to the leave's last day in each year
       if (status === 'APPROVED') {
-        const { getAvailableVacationDays } = await import('@/lib/vacation')
-        const availableDays = await getAvailableVacationDays(vacation.userId, vacation.endDate)
-        if (availableDays < vacation.days) {
-          const short = (vacation.days - availableDays).toFixed(1)
-          throw new ValidationError(
-            `Can't approve yet — by ${format(vacation.endDate, 'MMM d, yyyy')} only ${availableDays.toFixed(1)} days will be accrued, but this request needs ${vacation.days} (${short} short).`
-          )
+        const { checkRequestBalance, describeBalanceShortfall } = await import('@/lib/vacation')
+        const balanceCheck = await checkRequestBalance(
+          vacation.userId,
+          vacation.startDate,
+          vacation.endDate,
+          vacation.dayPortion
+        )
+        if (!balanceCheck.sufficient) {
+          throw new ValidationError(describeBalanceShortfall(balanceCheck, 'employee')!)
         }
       }
     }

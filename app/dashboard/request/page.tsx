@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type DayPortion = 'FULL' | 'FIRST_HALF' | 'SECOND_HALF'
+type YearBalance = { year: number; asOf: string; requested: number; available: number }
 export default function RequestVacationPage() {
   const router = useRouter()
   const [startDate, setStartDate] = useState('')
@@ -21,7 +22,7 @@ export default function RequestVacationPage() {
   const [loading, setLoading] = useState(false)
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null)
   const [excluded, setExcluded] = useState<{ weekends: number; holidays: number } | null>(null)
-  const [availableAtEnd, setAvailableAtEnd] = useState<number | null>(null)
+  const [balanceByYear, setBalanceByYear] = useState<YearBalance[] | null>(null)
   const isSingleDay = Boolean(startDate && endDate && startDate === endDate)
   const effectiveDayPortion: DayPortion = isSingleDay ? dayPortion : 'FULL'
 
@@ -32,7 +33,7 @@ export default function RequestVacationPage() {
       if (!startDate || !endDate) {
         setCalculatedDays(null)
         setExcluded(null)
-        setAvailableAtEnd(null)
+        setBalanceByYear(null)
         return
       }
       const start = new Date(startDate + 'T00:00:00')
@@ -40,7 +41,7 @@ export default function RequestVacationPage() {
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
         setCalculatedDays(null)
         setExcluded(null)
-        setAvailableAtEnd(null)
+        setBalanceByYear(null)
         return
       }
       try {
@@ -54,7 +55,7 @@ export default function RequestVacationPage() {
         if (!res.ok) {
           setCalculatedDays(null)
           setExcluded(null)
-          setAvailableAtEnd(null)
+          setBalanceByYear(null)
           return
         }
         setCalculatedDays(typeof data.usedDays === 'number' ? data.usedDays : null)
@@ -62,14 +63,12 @@ export default function RequestVacationPage() {
           weekends: typeof data.excludedWeekendDays === 'number' ? data.excludedWeekendDays : 0,
           holidays: typeof data.excludedHolidayDays === 'number' ? data.excludedHolidayDays : 0,
         })
-        setAvailableAtEnd(
-          typeof data.availableAsOfEndDate === 'number' ? data.availableAsOfEndDate : null
-        )
+        setBalanceByYear(Array.isArray(data.balanceByYear) ? data.balanceByYear : null)
       } catch {
         if (!cancelled) {
           setCalculatedDays(null)
           setExcluded(null)
-          setAvailableAtEnd(null)
+          setBalanceByYear(null)
         }
       }
     }
@@ -173,8 +172,10 @@ export default function RequestVacationPage() {
             </div>
 
             {calculatedDays !== null && (() => {
-              const hasBalance = availableAtEnd !== null
-              const sufficient = hasBalance && availableAtEnd! >= calculatedDays
+              const hasBalance = balanceByYear !== null && balanceByYear.length > 0
+              const sufficient =
+                hasBalance && balanceByYear!.every((y) => y.available >= y.requested)
+              const multiYear = hasBalance && balanceByYear!.length > 1
               const boxClass = hasBalance
                 ? sufficient
                   ? 'bg-green-50 border-green-100'
@@ -193,18 +194,27 @@ export default function RequestVacationPage() {
                       .
                     </p>
                   )}
-                  {hasBalance && (
-                    <p className="text-sm text-gray-700 mt-2">
-                      Projected balance by {new Date(endDate + 'T00:00:00').toLocaleDateString()}:{' '}
-                      <strong>{availableAtEnd!.toFixed(1)} days</strong> accrued
-                      {sufficient ? (
-                        <> — enough for this request (
-                          {(availableAtEnd! - calculatedDays).toFixed(1)} left over).</>
-                      ) : (
-                        <> — not enough yet ({(calculatedDays - availableAtEnd!).toFixed(1)} short).</>
-                      )}
-                    </p>
-                  )}
+                  {hasBalance &&
+                    balanceByYear!.map((y) => {
+                      const ok = y.available >= y.requested
+                      return (
+                        <p key={y.year} className="text-sm text-gray-700 mt-2">
+                          {multiYear && (
+                            <>
+                              {y.requested} day{y.requested === 1 ? '' : 's'} in {y.year}.{' '}
+                            </>
+                          )}
+                          Projected {multiYear ? `${y.year} ` : ''}balance by{' '}
+                          {new Date(y.asOf + 'T00:00:00').toLocaleDateString()}:{' '}
+                          <strong>{y.available.toFixed(1)} days</strong>
+                          {ok ? (
+                            <> — enough{multiYear ? '' : ' for this request'} ({(y.available - y.requested).toFixed(1)} left over).</>
+                          ) : (
+                            <> — not enough yet ({(y.requested - y.available).toFixed(1)} short).</>
+                          )}
+                        </p>
+                      )
+                    })}
                 </div>
               )
             })()}

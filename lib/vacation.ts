@@ -10,6 +10,8 @@ import {
 
 const MONTHLY_ACCRUAL_RATE = 30 / 12 // 2.5 days per month (kept for legacy/monthly flows)
 const DEFAULT_YEARLY_ALLOWANCE = 30
+// Max unused days carried over into the next year at rollover (hard-coded policy, not an admin setting)
+export const CARRYOVER_LIMIT = 5
 export type VacationDayPortion = 'FULL' | 'FIRST_HALF' | 'SECOND_HALF'
 
 /**
@@ -206,46 +208,170 @@ export async function calculateAccruedDays(
   return employedDaysThisYear * dailyRate
 }
 
+function yearStartDate(year: number) {
+  return new Date(year, 0, 1)
+}
+
+function yearEndDate(year: number) {
+  return new Date(year, 11, 31)
+}
+
 /**
- * Get available vacation days for a user.
+ * Chargeable days of a stored request that fall within `year`.
+ * Requests fully inside the year use their stored `days`; requests spanning
+ * New Year are re-split by calendar year (weekends/holidays excluded).
+ */
+async function chargeableDaysInYear(
+  userId: string,
+  req: { startDate: Date; endDate: Date; days: number },
+  year: number
+): Promise<number> {
+  const s = new Date(req.startDate)
+  const e = new Date(req.endDate)
+  if (s.getFullYear() === year && e.getFullYear() === year) return req.days
+  const clipStart = s > yearStartDate(year) ? s : yearStartDate(year)
+  const clipEnd = e < yearEndDate(year) ? e : yearEndDate(year)
+  if (clipStart > clipEnd) return 0
+  const breakdown = await calculateVacationDaysBreakdownForUser(userId, clipStart, clipEnd)
+  return breakdown.usedDays
+}
+
+/**
+ * Days used in `year` by approved requests (and ones pending cancellation, which
+ * still count until cancelled). Requests overlapping the year boundary are
+ * charged only for the days that fall inside `year`.
+ */
+export async function getUsedDaysInYear(userId: string, year: number): Promise<number> {
+  const requests = await prisma.vacationRequest.findMany({
+    where: {
+      userId,
+      status: { in: ['APPROVED', 'CANCELLATION_REQUESTED'] },
+      startDate: { lte: new Date(year, 11, 31, 23, 59, 59) },
+      endDate: { gte: yearStartDate(year) },
+    },
+  })
+  let used = 0
+  for (const req of requests) {
+    used += await chargeableDaysInYear(userId, req, year)
+  }
+  return used
+}
+
+/**
+ * Carry-over expected into `year` from `year - 1`, for years whose rollover
+ * hasn't run yet (i.e. future years). For the current or past years the
+ * carry-over is already stored in the balance's `adjusted` field, so this is 0.
  *
- * By default this reports the balance as of today. Pass `targetDate` to check
- * availability as of a future date instead (e.g. the end date of a requested
- * leave) — this lets employees request days they will have accrued by the
- * time the leave occurs, not just what they've accrued as of today.
+ * `extraUsedPrevYear` lets callers account for days of a not-yet-approved request
+ * that fall in the previous year (they reduce what would be carried over).
+ */
+async function getProjectedCarryover(
+  userId: string,
+  year: number,
+  extraUsedPrevYear = 0
+): Promise<number> {
+  if (year <= new Date().getFullYear()) return 0
+  const prevYear = year - 1
+  const prevBalance = await getYearBalance(userId, prevYear, yearEndDate(prevYear))
+  return Math.max(0, Math.min(prevBalance - extraUsedPrevYear, CARRYOVER_LIMIT))
+}
+
+/**
+ * Balance available within `year` as of `asOf` (must fall in `year`):
+ * accrued so far that year + adjustments (incl. stored carry-over)
+ * + projected carry-over (future years only) − days used in that year.
+ */
+async function getYearBalance(
+  userId: string,
+  year: number,
+  asOf: Date,
+  extraUsedPrevYear = 0
+): Promise<number> {
+  const balance = await prisma.vacationBalance.findUnique({
+    where: { userId_year: { userId, year } },
+  })
+  const accrued = await calculateAccruedDays(userId, asOf)
+  const used = await getUsedDaysInYear(userId, year)
+  const carryover = await getProjectedCarryover(userId, year, extraUsedPrevYear)
+  return accrued + (balance?.adjusted ?? 0) + carryover - used
+}
+
+/**
+ * Get available vacation days for a user within `targetDate`'s year, as of `targetDate`.
+ *
+ * By default this reports the balance as of today. For checking a specific
+ * request (which may span New Year), use `checkRequestBalance` instead.
  */
 export async function getAvailableVacationDays(
   userId: string,
   targetDate: Date = new Date()
 ): Promise<number> {
-  const targetYear = targetDate.getFullYear()
+  return getYearBalance(userId, targetDate.getFullYear(), targetDate)
+}
 
-  // Get balance for the target date's year
-  const balance = await getOrCreateVacationBalance(userId, targetYear)
+export type YearBalanceCheck = {
+  year: number
+  /** Last day of the request within this year — the date the balance is projected to */
+  asOf: Date
+  requested: number
+  available: number
+}
 
-  // Calculate accrued days as of the target date
-  const accrued = await calculateAccruedDays(userId, targetDate)
+/**
+ * Check whether a user can afford a request, year by year.
+ *
+ * Each calendar year's portion of the request is checked against that year's
+ * balance, projected to the last day of the request within the year — so a
+ * Dec 21 → Jan 3 trip draws its December days from this year's balance and
+ * its January days from next year's (incl. projected carry-over). Years where
+ * the request uses no days (e.g. only weekends/holidays) are omitted.
+ */
+export async function checkRequestBalance(
+  userId: string,
+  startDate: Date,
+  endDate: Date,
+  dayPortion?: VacationDayPortion | null
+): Promise<{ sufficient: boolean; years: YearBalanceCheck[] }> {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  start.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
 
-  // Calculate used days from approved requests in that year (exclude cancellation requested as they're pending cancellation)
-  const approvedRequests = await prisma.vacationRequest.findMany({
-    where: {
-      userId,
-      status: {
-        in: ['APPROVED', 'CANCELLATION_REQUESTED']
-      }, // Include cancellation requested as they're still "used" until cancelled
-      startDate: {
-        gte: new Date(targetYear, 0, 1),
-      },
-      endDate: {
-        lte: new Date(targetYear, 11, 31),
-      },
-    },
-  })
+  const years: YearBalanceCheck[] = []
+  let requestedPrevYear = 0
+  for (let year = start.getFullYear(); year <= end.getFullYear(); year++) {
+    const segStart = start > yearStartDate(year) ? start : yearStartDate(year)
+    const segEnd = end < yearEndDate(year) ? end : yearEndDate(year)
+    const breakdown = await calculateVacationDaysBreakdownForUser(userId, segStart, segEnd)
+    // Half-days only apply to single-day requests, which never span years
+    const requested = calculateRequestedDaysFromPortion(breakdown.usedDays, start, end, dayPortion)
+    if (requested > 0) {
+      const available = await getYearBalance(userId, year, segEnd, requestedPrevYear)
+      years.push({ year, asOf: segEnd, requested, available })
+    }
+    requestedPrevYear = requested
+  }
 
-  const used = approvedRequests.reduce((sum, req) => sum + req.days, 0)
+  return { sufficient: years.every((y) => y.available >= y.requested), years }
+}
 
-  // Available = accrued + adjustments - used
-  return accrued + balance.adjusted - used
+/**
+ * Human-readable explanation of the first year a request falls short in, or null if affordable.
+ */
+export function describeBalanceShortfall(
+  check: { years: YearBalanceCheck[] },
+  subject: 'you' | 'employee' = 'you'
+): string | null {
+  const y = check.years.find((c) => c.available < c.requested)
+  if (!y) return null
+  const multiYear = check.years.length > 1
+  const short = (y.requested - y.available).toFixed(1)
+  const when = format(y.asOf, 'MMM d, yyyy')
+  const avail = `${y.available.toFixed(1)} day${y.available.toFixed(1) === '1.0' ? '' : 's'}`
+  const needs = `${y.requested} day${y.requested === 1 ? '' : 's'}${multiYear ? ` in ${y.year}` : ''}`
+  return subject === 'you'
+    ? `You won't have enough vacation days yet. By ${when} you'll have ${avail} available${multiYear ? ` for ${y.year}` : ''}, but this request needs ${needs} — ${short} short.`
+    : `Can't approve yet — by ${when} only ${avail} will be available${multiYear ? ` for ${y.year}` : ''}, but this request needs ${needs} (${short} short).`
 }
 
 /**
@@ -279,27 +405,13 @@ export async function processYearRollover(targetYear?: number) {
 
     if (!previousBalance) continue
 
-    // Calculate unused days from previous year
-    // Used days are calculated from approved vacation requests
-    const approvedRequests = await prisma.vacationRequest.findMany({
-      where: {
-        userId: user.id,
-        status: { in: ['APPROVED', 'CANCELLATION_REQUESTED'] },
-        startDate: {
-          gte: new Date(previousYear, 0, 1),
-        },
-        endDate: {
-          lte: new Date(previousYear, 11, 31),
-        },
-      },
-    })
-
-    const usedDays = approvedRequests.reduce((sum, req) => sum + req.days, 0)
+    // Calculate unused days from previous year (requests spanning New Year
+    // are charged only for their days within the previous year)
+    const usedDays = await getUsedDaysInYear(user.id, previousYear)
     const accruedDays = await calculateAccruedDays(user.id, new Date(previousYear, 11, 31))
     const unusedDays = accruedDays + previousBalance.adjusted - usedDays
 
-    // Only carry over positive unused days (max 5 days as per common policy, adjust as needed)
-    const CARRYOVER_LIMIT = 5
+    // Only carry over positive unused days, capped at CARRYOVER_LIMIT
     const carryoverDays = Math.max(0, Math.min(unusedDays, CARRYOVER_LIMIT))
 
     if (carryoverDays > 0) {
