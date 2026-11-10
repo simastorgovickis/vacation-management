@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
       ...breakdown,
       usedDays,
       balanceSufficient: balanceCheck.sufficient,
+      balanceAtEnd: {
+        asOf: format(balanceCheck.atEnd.asOf, 'yyyy-MM-dd'),
+        available: balanceCheck.atEnd.available,
+        leftOver: balanceCheck.atEnd.leftOver,
+      },
       balanceByYear: balanceCheck.years.map((y) => ({
         year: y.year,
         asOf: format(y.asOf, 'yyyy-MM-dd'),

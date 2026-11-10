@@ -331,7 +331,16 @@ export async function checkRequestBalance(
   startDate: Date,
   endDate: Date,
   dayPortion?: VacationDayPortion | null
-): Promise<{ sufficient: boolean; years: YearBalanceCheck[] }> {
+): Promise<{
+  sufficient: boolean
+  years: YearBalanceCheck[]
+  /**
+   * Overall projection as of the request's end date: `available` is the total
+   * balance the request can draw on (incl. carry-over into the end year) and
+   * `leftOver` what remains on the end date after taking it.
+   */
+  atEnd: { asOf: Date; available: number; leftOver: number }
+}> {
   const start = new Date(startDate)
   const end = new Date(endDate)
   start.setHours(0, 0, 0, 0)
@@ -339,20 +348,28 @@ export async function checkRequestBalance(
 
   const years: YearBalanceCheck[] = []
   let requestedPrevYear = 0
+  let totalRequested = 0
+  let leftOver = 0
   for (let year = start.getFullYear(); year <= end.getFullYear(); year++) {
     const segStart = start > yearStartDate(year) ? start : yearStartDate(year)
     const segEnd = end < yearEndDate(year) ? end : yearEndDate(year)
     const breakdown = await calculateVacationDaysBreakdownForUser(userId, segStart, segEnd)
     // Half-days only apply to single-day requests, which never span years
     const requested = calculateRequestedDaysFromPortion(breakdown.usedDays, start, end, dayPortion)
+    const available = await getYearBalance(userId, year, segEnd, requestedPrevYear)
     if (requested > 0) {
-      const available = await getYearBalance(userId, year, segEnd, requestedPrevYear)
       years.push({ year, asOf: segEnd, requested, available })
     }
+    totalRequested += requested
+    leftOver = available - requested // last iteration = end year, as of the end date
     requestedPrevYear = requested
   }
 
-  return { sufficient: years.every((y) => y.available >= y.requested), years }
+  return {
+    sufficient: years.every((y) => y.available >= y.requested),
+    years,
+    atEnd: { asOf: end, available: leftOver + totalRequested, leftOver },
+  }
 }
 
 /**
