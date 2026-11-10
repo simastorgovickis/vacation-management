@@ -54,7 +54,7 @@ This document summarizes all the improvements made to the Vacation Management ap
 - **Added**: `processYearRollover()` function in `lib/vacation.ts`
 - **Features**:
   - Carries over unused vacation days to the next year
-  - Maximum carryover limit: 5 days (configurable)
+  - Maximum carryover limit: 30 days (`CARRYOVER_LIMIT` in lib/vacation.ts)
   - Automatically runs during January monthly accrual
 - **Integration**: Called automatically in `processMonthlyAccrual()` when month === 1
 
@@ -156,7 +156,7 @@ The following routes still need similar improvements but are lower priority:
 
 3. **Input Sanitization**: Basic HTML sanitization is implemented. For production, consider using DOMPurify for more robust HTML sanitization.
 
-4. **Year Rollover**: The carryover limit is set to 5 days. Adjust `CARRYOVER_LIMIT` in `lib/vacation.ts` as needed.
+4. **Year Rollover**: The carryover limit is set to 30 days. Adjust `CARRYOVER_LIMIT` in `lib/vacation.ts` as needed.
 
 5. **Error Handling**: All API routes now return consistent error responses with proper HTTP status codes.
 

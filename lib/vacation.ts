@@ -11,7 +11,7 @@ import {
 const MONTHLY_ACCRUAL_RATE = 30 / 12 // 2.5 days per month (kept for legacy/monthly flows)
 const DEFAULT_YEARLY_ALLOWANCE = 30
 // Max unused days carried over into the next year at rollover (hard-coded policy, not an admin setting)
-export const CARRYOVER_LIMIT = 5
+export const CARRYOVER_LIMIT = 30
 export type VacationDayPortion = 'FULL' | 'FIRST_HALF' | 'SECOND_HALF'
 
 /**
