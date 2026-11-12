@@ -104,8 +104,7 @@ export const changePasswordSchema = z.object({
   }
 )
 
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
+export const setPasswordSchema = z.object({
   newPassword: passwordSchema,
   confirmPassword: z.string(),
 }).refine(

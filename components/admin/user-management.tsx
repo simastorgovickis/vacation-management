@@ -41,7 +41,11 @@ export function UserManagement() {
   const [resetting, setResetting] = useState<string | null>(null)
   const [togglingActive, setTogglingActive] = useState<string | null>(null)
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
-  const [resetPassword, setResetPassword] = useState<{ email: string; password: string } | null>(null)
+  const [resetPassword, setResetPassword] = useState<{
+    email: string
+    password: string
+    expiresInHours?: number
+  } | null>(null)
 
   useEffect(() => {
     fetch('/api/users')
@@ -74,7 +78,11 @@ export function UserManagement() {
       }
 
       // Show dialog with the new password
-      setResetPassword({ email: userEmail, password: data.password })
+      setResetPassword({
+        email: userEmail,
+        password: data.password,
+        expiresInHours: data.expiresInHours,
+      })
       setShowPasswordDialog(true)
       setResetting(null)
     } catch (error) {
@@ -205,7 +213,7 @@ export function UserManagement() {
           <DialogHeader>
             <DialogTitle>Password Reset Successful</DialogTitle>
             <DialogDescription>
-              A new password has been generated for {resetPassword?.email}. Please share this password with the user securely.
+              A temporary password has been generated for {resetPassword?.email}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -225,7 +233,11 @@ export function UserManagement() {
             </div>
             <div className="rounded-md bg-yellow-50 border border-yellow-200 p-3">
               <p className="text-sm text-yellow-800">
-                <strong>Important:</strong> The user should log in with this password and change it immediately from their profile page.
+                <strong>Share it privately</strong> (Slack DM or Teams chat, not a channel). The
+                user will be asked to set a new password right after logging in.
+                {resetPassword?.expiresInHours
+                  ? ` If unused, it expires in ${resetPassword.expiresInHours} hours.`
+                  : ''}
               </p>
             </div>
             <div className="flex justify-end">

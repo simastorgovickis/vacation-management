@@ -7,6 +7,7 @@ import { apiRateLimiter } from '@/lib/rate-limit'
 import { AppError, NotFoundError, RateLimitError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
 import { sendTemporaryPasswordEmail } from '@/lib/email'
+import { TEMP_PASSWORD_TTL_HOURS, temporaryPasswordMetadata } from '@/lib/password-reset'
 
 // POST /api/users/[id]/reset-password - Generate and set a new password
 export async function POST(
@@ -50,8 +51,11 @@ export async function POST(
     // We need to find the Supabase auth user by email since Prisma User ID != Supabase Auth User ID
     const supabase = createAdminClient()
     
-    // First, get the Supabase auth user by email
-    const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers()
+    // First, get the Supabase auth user by email (default page size is 50 — fetch all)
+    const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
     
     if (listError) {
       return NextResponse.json(
@@ -60,7 +64,9 @@ export async function POST(
       )
     }
 
-    const authUser = authUsers.users.find((u) => u.email === user.email)
+    const authUser = authUsers.users.find(
+      (u) => u.email?.toLowerCase() === user.email.toLowerCase()
+    )
     
     if (!authUser) {
       return NextResponse.json(
@@ -69,9 +75,11 @@ export async function POST(
       )
     }
 
-    // Now update the password using the Supabase auth user ID
+    // Set the temporary password and flag it: the user must choose a new one at
+    // next login, and the temporary one expires if unused
     const { error: updateError } = await supabase.auth.admin.updateUserById(authUser.id, {
       password: newPassword,
+      app_metadata: temporaryPasswordMetadata(),
     })
 
     if (updateError) {
@@ -103,6 +111,7 @@ export async function POST(
       success: true,
       message: 'Password has been reset successfully',
       password: newPassword, // Only returned for UI display, never logged
+      expiresInHours: TEMP_PASSWORD_TTL_HOURS,
     })
   } catch (error: unknown) {
     if (error instanceof AppError) {

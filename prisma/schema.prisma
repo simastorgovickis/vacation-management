@@ -50,20 +50,6 @@ model ManagerEmployee {
   @@index([managerId])
 }
 
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([expiresAt])
-  @@index([token])
-  @@index([userId])
-}
-
 model PublicHoliday {
   id          String   @id @default(cuid())
   countryId   String
@@ -94,7 +80,6 @@ model User {
   countryId                                        String?
   ManagerEmployee_ManagerEmployee_employeeIdToUser ManagerEmployee[]    @relation("ManagerEmployee_employeeIdToUser")
   managedEmployees                                 ManagerEmployee[]    @relation("ManagerEmployee_managerIdToUser")
-  PasswordResetToken                               PasswordResetToken[]
   Country                                          Country?             @relation(fields: [countryId], references: [id])
   VacationAccrualLog                               VacationAccrualLog[]
   VacationBalance                                  VacationBalance[]

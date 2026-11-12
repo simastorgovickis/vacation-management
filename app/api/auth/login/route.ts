@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { isTemporaryPasswordExpired, mustChangePassword } from '@/lib/password-reset'
 
 export async function POST(request: Request) {
   try {
@@ -37,7 +38,21 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ user: data.user })
+    if (isTemporaryPasswordExpired(data.user)) {
+      await supabase.auth.signOut()
+      return NextResponse.json(
+        {
+          error:
+            'Your temporary password has expired. Please ask your administrator to reset it again.',
+        },
+        { status: 401 }
+      )
+    }
+
+    return NextResponse.json({
+      user: data.user,
+      mustChangePassword: mustChangePassword(data.user),
+    })
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal server error' },

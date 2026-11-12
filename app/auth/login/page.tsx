@@ -35,7 +35,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/')
+      router.push(data.mustChangePassword ? '/auth/set-password' : '/')
       router.refresh()
     } catch (err) {
       setError('An error occurred. Please try again.')
@@ -87,6 +87,9 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
+            <p className="text-center text-sm text-gray-500">
+              Forgot your password? Ask your administrator to reset it.
+            </p>
           </form>
         </CardContent>
       </Card>

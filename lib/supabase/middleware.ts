@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { mustChangePassword, SET_PASSWORD_PATH } from '@/lib/password-reset'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -44,6 +45,34 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
+  }
+
+  // Users signed in with an admin-issued temporary password must set a new one
+  // before doing anything else (only the set-password page/API and logout stay open)
+  if (user && mustChangePassword(user)) {
+    const path = request.nextUrl.pathname
+    const allowed =
+      path === SET_PASSWORD_PATH ||
+      path === '/api/auth/set-password' ||
+      path === '/api/auth/logout' ||
+      path === '/auth/login' ||
+      path === '/api/auth/login'
+    if (!allowed) {
+      if (path.startsWith('/api/')) {
+        const res = NextResponse.json(
+          { error: 'You must set a new password before continuing.' },
+          { status: 403 }
+        )
+        supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c))
+        return res
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = SET_PASSWORD_PATH
+      url.search = ''
+      const res = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c))
+      return res
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
